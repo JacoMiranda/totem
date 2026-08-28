@@ -1,0 +1,69 @@
+{
+    "voz": "Aoede",
+    "geradoEm": "2026-08-28T21:44:23+00:00",
+    "frases": {
+        "boas-vindas": {
+            "arquivo": "boas-vindas.wav",
+            "texto": "Olá! Seja bem-vindo à Ouvidoria Cidadã. Toque na tela para começar o seu relato.",
+            "hash": "43253ab82c429ec295377a191e58e41d86224ca8",
+            "bytes": 350010,
+            "sampleRate": 24000
+        },
+        "classificacao-instrucao": {
+            "arquivo": "classificacao-instrucao.wav",
+            "texto": "Confira a classificação do seu relato e ajuste se for necessário. Depois, toque em confirmar e enviar.",
+            "hash": "a9a1ee97fae6dcf595d2b2c285a580f33d2665ed",
+            "bytes": 367290,
+            "sampleRate": 24000
+        },
+        "conclusao-offline": {
+            "arquivo": "conclusao-offline.wav",
+            "texto": "O seu relato foi guardado neste totem e será enviado assim que a conexão voltar. Anote a data e a hora do seu atendimento. Obrigado.",
+            "hash": "9f3103d2defdad74e9ddd6757fb96abf55b16d0f",
+            "bytes": 461370,
+            "sampleRate": 24000
+        },
+        "conclusao-online": {
+            "arquivo": "conclusao-online.wav",
+            "texto": "O seu relato foi registrado com sucesso. Guarde o número de protocolo e o código de acompanhamento. Obrigado pela sua participação.",
+            "hash": "0f7ffd69939152b5f090a5cbeba59de7323b1dac",
+            "bytes": 390330,
+            "sampleRate": 24000
+        },
+        "inicio-consentimento": {
+            "arquivo": "inicio-consentimento.wav",
+            "texto": "Antes de começar, confirme que concorda com o registro do seu relato. A identificação dos seus dados é opcional.",
+            "hash": "191502d0416ecea5d402e6351fdff2359aa7b5d7",
+            "bytes": 382650,
+            "sampleRate": 24000
+        },
+        "relato-gravando": {
+            "arquivo": "relato-gravando.wav",
+            "texto": "Pode falar. Toque novamente no microfone quando terminar.",
+            "hash": "db90b10913a6cf60a25b3ed36cc647588504a5f0",
+            "bytes": 190650,
+            "sampleRate": 24000
+        },
+        "relato-instrucao": {
+            "arquivo": "relato-instrucao.wav",
+            "texto": "Toque no microfone e conte o que aconteceu. Se preferir, pode escrever no campo abaixo.",
+            "hash": "0ea8bac755435582eda756025a59cec25e559130",
+            "bytes": 284730,
+            "sampleRate": 24000
+        },
+        "relato-processando": {
+            "arquivo": "relato-processando.wav",
+            "texto": "Um momento, estou a processar o seu relato.",
+            "hash": "e5f7429bd1982f76a22e34cb7c87fda0a643c951",
+            "bytes": 163770,
+            "sampleRate": 24000
+        },
+        "relato-sem-microfone": {
+            "arquivo": "relato-sem-microfone.wav",
+            "texto": "Não consegui usar o microfone. Escreva o seu relato no campo abaixo, por favor.",
+            "hash": "8614973187663ebb02792735fce693e58a86c99a",
+            "bytes": 248250,
+            "sampleRate": 24000
+        }
+    }
+}

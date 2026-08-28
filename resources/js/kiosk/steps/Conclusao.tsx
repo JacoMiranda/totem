@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
-import { api } from '../lib/api';
-import { falarComFallbackDoNavegador, playPcmAudio } from '../lib/playPcmAudio';
+import { falarConclusao, falarFrase, pararFala } from '../lib/vozKiosk';
 import { useJourneyStore } from '../store/journeyStore';
 
 const PENDENTE_PREFIXO = 'PENDENTE-';
 
 /**
  * Etapa 4 (Conclusão) - mostra o protocolo (e o PIN, se a criação foi
- * síncrona) e fala uma confirmação (TTS via Gemini, com fallback pra
- * síntese nativa do navegador se a IA/rede não responder). Se o protocolo
+ * síncrona) e fala uma confirmação usando os áudios PRÉ-GRAVADOS
+ * (config/kiosk_audio.php + ouvidoria:gerar-audios-kiosk) - sem chamada de
+ * rede, instantâneo e offline. Fallback: síntese nativa do navegador. Se o
+ * protocolo
  * começa com `PENDENTE-` (ver Classificacao.confirmarEEnviar), a
  * manifestação ainda está na fila local aguardando conexão - o cidadão
  * recebe um identificador local válido MESMO offline, e o protocolo real
@@ -20,18 +21,16 @@ export function Conclusao() {
   const pendente = protocolo?.startsWith(PENDENTE_PREFIXO) ?? false;
 
   useEffect(() => {
-    const mensagem = pendente
-      ? 'Seu relato foi guardado neste totem e será enviado assim que a conexão voltar. Obrigado.'
-      : `Identificámos o seu relato como ${categoria ?? 'registrado'}, com sentimento ${sentimento ?? 'neutro'}. Obrigado pela sua participação.`;
+    // Locução pré-gravada: offline usa a frase genérica de "guardado";
+    // online usa a combinação categoria+sentimento pré-gerada (cai na
+    // genérica se a combinação faltar). Sem chamada de rede aqui.
+    if (pendente) {
+      void falarFrase('conclusao-offline');
+    } else {
+      void falarConclusao(categoria, sentimento);
+    }
 
-    (async () => {
-      try {
-        const { data } = await api.post('/ai/tts', { texto: mensagem });
-        playPcmAudio(data.audioBase64, data.sampleRate);
-      } catch {
-        falarComFallbackDoNavegador(mensagem);
-      }
-    })();
+    return pararFala;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fallbackLocalAnalysis } from '../../shared';
 import { api, isNetworkError } from '../lib/api';
 import { useAudioRecorder } from '../lib/useAudioRecorder';
+import { falarFrase, pararFala } from '../lib/vozKiosk';
 import { useJourneyStore } from '../store/journeyStore';
 
 /**
@@ -17,6 +18,18 @@ export function Relato() {
   const { isRecording, erro: erroMicrofone, iniciar, parar } = useAudioRecorder();
   const [processando, setProcessando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+
+  // Instrução falada ao entrar; corta qualquer locução ao sair (a fala
+  // nunca deve vazar para a próxima etapa ou para dentro da gravação).
+  useEffect(() => {
+    void falarFrase('relato-instrucao');
+
+    return pararFala;
+  }, []);
+
+  useEffect(() => {
+    if (erroMicrofone) void falarFrase('relato-sem-microfone');
+  }, [erroMicrofone]);
 
   const processarComTexto = async (texto: string) => {
     try {
@@ -35,6 +48,7 @@ export function Relato() {
 
   const alternarGravacao = async () => {
     if (!isRecording) {
+      pararFala(); // não gravar a própria locução
       await iniciar();
 
       return;
@@ -45,6 +59,7 @@ export function Relato() {
 
     setAudio(gravado.blob, gravado.mimeType);
     setProcessando(true);
+    void falarFrase('relato-processando');
     try {
       const form = new FormData();
       form.append('file', gravado.blob, `gravacao.${gravado.mimeType.includes('mp4') ? 'mp4' : 'webm'}`);

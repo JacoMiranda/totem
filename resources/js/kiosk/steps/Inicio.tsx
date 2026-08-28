@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { falarFrase, pararFala } from '../lib/vozKiosk';
 import { useJourneyStore } from '../store/journeyStore';
 
 /**
@@ -16,6 +17,18 @@ export function Inicio() {
   const [documento, setDocumento] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const boasVindasTocadas = useRef(false);
+
+  // Autoplay é bloqueado até o primeiro gesto - por isso as boas-vindas
+  // disparam no primeiro toque da tela (o gatilho de "presença" possível
+  // num totem web), não na montagem.
+  const aoPrimeiroToque = () => {
+    if (boasVindasTocadas.current) return;
+    boasVindasTocadas.current = true;
+    void falarFrase('boas-vindas');
+  };
+
+  useEffect(() => pararFala, []);
 
   const identificar = async () => {
     setErro(null);
@@ -37,7 +50,10 @@ export function Inicio() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <main
+      className="min-h-screen flex items-center justify-center bg-slate-50 p-6"
+      onPointerDown={aoPrimeiroToque}
+    >
       <div className="w-full max-w-lg bg-white rounded-3xl p-8 shadow-xl flex flex-col gap-5 text-center">
         <div className="text-5xl">🏛️</div>
         <h1 className="text-2xl font-extrabold text-slate-900">Ouvidoria Cidadã</h1>

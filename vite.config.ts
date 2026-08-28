@@ -39,6 +39,19 @@ export default defineConfig({
             workbox: {
                 navigateFallback: '/atendimento',
                 globPatterns: ['**/*.{js,css,html}'],
+                // Áudios das frases fixas (public/audio/kiosk/*.wav) não
+                // passam pelo build do Vite - cacheia em runtime na 1ª
+                // reprodução pra ficarem disponíveis offline depois.
+                runtimeCaching: [
+                    {
+                        urlPattern: ({ url }) => url.pathname.startsWith('/audio/kiosk/'),
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'kiosk-audio',
+                            expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 90 },
+                        },
+                    },
+                ],
             },
         }),
     ],

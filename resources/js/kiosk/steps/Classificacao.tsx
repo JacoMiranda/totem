@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CATEGORIES,
   SENTIMENTS,
@@ -8,6 +8,7 @@ import {
 } from '../../shared';
 import db from '../lib/db';
 import { sincronizarUm } from '../lib/sync';
+import { falarFrase, pararFala } from '../lib/vozKiosk';
 import { useJourneyStore } from '../store/journeyStore';
 
 /**
@@ -21,6 +22,12 @@ export function Classificacao() {
   const state = useJourneyStore();
   const { transcricao, resumo, keywords, sentimento, categoria, urgencia, degraded, setClassificacaoManual } = state;
   const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    void falarFrase('classificacao-instrucao');
+
+    return pararFala;
+  }, []);
 
   const confirmarEEnviar = async () => {
     setEnviando(true);
