@@ -7,6 +7,7 @@ use App\Http\Requests\StoreManifestationRequest;
 use App\Models\Device;
 use App\Models\Manifestation;
 use App\Models\ManifestationStatusHistory;
+use App\Services\NotificationDispatchService;
 use App\Services\ProtocoloService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,10 @@ use Illuminate\Support\Str;
  */
 class ManifestationController extends Controller
 {
-    public function __construct(private readonly ProtocoloService $protocolo) {}
+    public function __construct(
+        private readonly ProtocoloService $protocolo,
+        private readonly NotificationDispatchService $notificacoes,
+    ) {}
 
     /**
      * Idempotente por clientId (docs/API.md) - reenviar o mesmo clientId
@@ -76,6 +80,14 @@ class ManifestationController extends Controller
         ]);
 
         $device->update(['ultima_sync_em' => now()]);
+
+        // Só na criação de verdade (nunca num replay idempotente) - urgência
+        // Crítica ou teor Denúncia disparam notificação (docs/PLANO-
+        // SISTEMA-PROFISSIONAL.md, Fase 7). Sem preferência ativa cadastrada
+        // pro tipo 'critica_recebida', isto não gera nenhum envio de verdade.
+        if ($manifestacao->urgencia?->value === 'Crítica' || $manifestacao->categoria?->value === 'Denúncia') {
+            $this->notificacoes->dispatchParaTipo('critica_recebida', $manifestacao);
+        }
 
         return $this->respostaCriacao($manifestacao, existente: false, pin: $pin);
     }

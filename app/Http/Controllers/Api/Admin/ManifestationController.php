@@ -12,6 +12,7 @@ use App\Models\Manifestation;
 use App\Models\ManifestationNote;
 use App\Models\ManifestationStatusHistory;
 use App\Models\User;
+use App\Services\NotificationDispatchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -22,6 +23,8 @@ use Illuminate\Validation\Rules\Enum;
 /** Contrato de docs/API.md ("Manifestações — painel, bearer, RBAC"). */
 class ManifestationController extends Controller
 {
+    public function __construct(private readonly NotificationDispatchService $notificacoes) {}
+
     public function index(Request $request): JsonResponse
     {
         Gate::authorize('ver-manifestacoes');
@@ -140,6 +143,8 @@ class ManifestationController extends Controller
             'ip' => $request->ip(),
             'criado_em' => now(),
         ]);
+
+        $this->notificacoes->dispatchParaTipo('atribuida', $manifestation, ['responsavel_id' => $validado['responsavelId']]);
 
         return response()->json($this->resumo($manifestation->fresh()));
     }

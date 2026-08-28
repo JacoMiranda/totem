@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\ManifestationController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationPrefController;
 use App\Http\Controllers\Api\PublicManifestationController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RequerenteController;
@@ -73,6 +75,13 @@ Route::prefix('v1')->group(function () {
             Route::get('/sla', [ReportController::class, 'sla']);
             Route::get('/export', [ReportController::class, 'export']);
         });
+
+        // Notificações (log e teste: admin; preferências: qualquer membro
+        // autenticado edita só as próprias, ver NotificationPrefController).
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/test', [NotificationController::class, 'test']);
+        Route::get('/notification-prefs', [NotificationPrefController::class, 'index']);
+        Route::put('/notification-prefs', [NotificationPrefController::class, 'update']);
     });
 
     // Consulta pública (sem auth) - rate-limited contra enumeração de
