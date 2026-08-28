@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['manifestation_id', 'de_status', 'para_status', 'autor_id', 'motivo'])]
+#[Fillable(['manifestation_id', 'de_status', 'para_status', 'autor_id', 'motivo', 'criado_em'])]
 class ManifestationStatusHistory extends Model
 {
     use HasUuids;

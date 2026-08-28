@@ -50,7 +50,11 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Aproxima "access token curto" do plano original (docs/ARQUITETURA.md
+    // pedia JWT+refresh httpOnly) - sem implementar um endpoint de refresh
+    // separado por enquanto: token expira em 8h (turno de trabalho), o
+    // cliente (painel admin) so precisa logar de novo depois disso.
+    'expiration' => 480,
 
     /*
     |--------------------------------------------------------------------------

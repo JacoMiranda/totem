@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    // Proxy de IA (Gemini) - ver App\Services\Ai\GeminiAiService e
+    // docs/MIGRACAO-DO-PROTOTIPO.md. A chave NUNCA vai pro cliente (kiosk/
+    // admin) - só o backend chama a API Gemini, diferente do protótipo
+    // original que a expunha direto no HTML.
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'text_model' => env('GEMINI_TEXT_MODEL', 'gemini-2.5-flash-preview-09-2025'),
+        'tts_model' => env('GEMINI_TTS_MODEL', 'gemini-2.5-flash-preview-tts'),
+        'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta/models'),
+    ],
+
 ];

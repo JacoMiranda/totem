@@ -13,12 +13,24 @@ use Illuminate\Support\Str;
  * Gestão de dispositivos (docs/API.md, seção "Dispositivos (admin)") -
  * protegido por Sanctum (equipe) + Gate gerenciar-dispositivos, NUNCA
  * pelo próprio device.key (um totem não pode se auto-cadastrar).
- * Versão mínima da Fase 1 - só o essencial pra existir um device de
- * verdade pra testar as rotas de manifestação; listagem/rotate-key/
- * ativar-desativar completos entram na Fase 4 (painel admin).
  */
 class DeviceController extends Controller
 {
+    public function index(): JsonResponse
+    {
+        Gate::authorize('gerenciar-dispositivos');
+
+        return response()->json(Device::orderBy('nome')->get()->map(fn (Device $d) => [
+            'id' => $d->id,
+            'codigo' => $d->codigo,
+            'nome' => $d->nome,
+            'unidade' => $d->unidade,
+            'ativo' => $d->ativo,
+            'ultimaSyncEm' => $d->ultima_sync_em?->toIso8601String(),
+            'versaoApp' => $d->versao_app,
+        ]));
+    }
+
     public function store(Request $request): JsonResponse
     {
         // Gate::authorize (nao $this->authorize) - o Controller base
@@ -32,21 +44,46 @@ class DeviceController extends Controller
             'unidade' => ['nullable', 'string', 'max:255'],
         ]);
 
+        [$device, $chaveCrua] = $this->criarComNovaChave($validado);
+
+        return response()->json(['id' => $device->id, 'codigo' => $device->codigo, 'deviceKey' => $chaveCrua], 201);
+    }
+
+    /** Nova key - a antiga para de funcionar imediatamente (revogação implícita). */
+    public function rotateKey(Device $device): JsonResponse
+    {
+        Gate::authorize('gerenciar-dispositivos');
+
+        $chaveCrua = Str::random(48);
+        $device->update(['api_key_hash' => hash('sha256', $chaveCrua)]);
+
+        return response()->json(['id' => $device->id, 'deviceKey' => $chaveCrua]);
+    }
+
+    public function update(Request $request, Device $device): JsonResponse
+    {
+        Gate::authorize('gerenciar-dispositivos');
+
+        $validado = $request->validate(['ativo' => ['required', 'boolean']]);
+        $device->update($validado);
+
+        return response()->json(['id' => $device->id, 'ativo' => $device->ativo]);
+    }
+
+    /** @return array{0: Device, 1: string} */
+    private function criarComNovaChave(array $dados): array
+    {
         // A key crua só existe neste momento - nunca gravada, nunca
         // recuperável depois (mesmo espírito de senha/api_key_hash já
         // usado no política-laravel pra provedores de IA).
         $chaveCrua = Str::random(48);
 
         $device = Device::create([
-            ...$validado,
+            ...$dados,
             'api_key_hash' => hash('sha256', $chaveCrua),
             'ativo' => true,
         ]);
 
-        return response()->json([
-            'id' => $device->id,
-            'codigo' => $device->codigo,
-            'deviceKey' => $chaveCrua,
-        ], 201);
+        return [$device, $chaveCrua];
     }
 }

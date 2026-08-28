@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** Auditoria imutável - registrar aqui: acesso a áudio, export, login, alteração de device, reclassificação. */
-#[Fillable(['ator_id', 'device_id', 'acao', 'entidade', 'entidade_id', 'metadados', 'ip'])]
+#[Fillable(['ator_id', 'device_id', 'acao', 'entidade', 'entidade_id', 'metadados', 'ip', 'criado_em'])]
 class AuditLog extends Model
 {
     use HasUuids;

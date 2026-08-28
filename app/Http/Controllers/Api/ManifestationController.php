@@ -65,6 +65,14 @@ class ManifestationController extends Controller
             'de_status' => null,
             'para_status' => 'Recebida',
             'autor_id' => null, // sistema
+            // criado_em explícito (não só o default useCurrent do MySQL) -
+            // o model tem $timestamps=false, e o valor gerado pelo BANCO
+            // nunca volta pro objeto Eloquent recém-criado sem um re-fetch;
+            // qualquer código que leia ->criado_em na MESMA instância (ver
+            // bug real corrigido em Admin\ManifestationController::addNote)
+            // pegaria null. Mais barato setar aqui sempre do que garantir
+            // que ninguém nunca vai ler de volta sem re-buscar.
+            'criado_em' => now(),
         ]);
 
         $device->update(['ultima_sync_em' => now()]);

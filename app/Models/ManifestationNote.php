@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['manifestation_id', 'autor_id', 'texto'])]
+#[Fillable(['manifestation_id', 'autor_id', 'texto', 'criado_em'])]
 class ManifestationNote extends Model
 {
     use HasUuids;
