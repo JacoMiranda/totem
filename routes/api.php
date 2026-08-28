@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\ManifestationController;
 use App\Http\Controllers\Api\PublicManifestationController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RequerenteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +65,14 @@ Route::prefix('v1')->group(function () {
         Route::post('/devices', [DeviceController::class, 'store']);
         Route::post('/devices/{device}/rotate-key', [DeviceController::class, 'rotateKey'])->whereUuid('device');
         Route::patch('/devices/{device}', [DeviceController::class, 'update'])->whereUuid('device');
+
+        // Relatórios (analista+, ver ReportController).
+        Route::prefix('reports')->group(function () {
+            Route::get('/summary', [ReportController::class, 'summary']);
+            Route::get('/timeseries', [ReportController::class, 'timeseries']);
+            Route::get('/sla', [ReportController::class, 'sla']);
+            Route::get('/export', [ReportController::class, 'export']);
+        });
     });
 
     // Consulta pública (sem auth) - rate-limited contra enumeração de
