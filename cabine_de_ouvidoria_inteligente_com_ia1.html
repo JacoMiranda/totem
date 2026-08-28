@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cabine de Ouvidoria Inteligente</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.18); opacity: 0.25; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-animation {
+      animation: pulse-ring 2.2s infinite ease-in-out;
+    }
+    @keyframes soundwave {
+      0%, 100% { height: 8px; }
+      50% { height: 32px; }
+    }
+    .wave-bar {
+      animation: soundwave 1.1s infinite ease-in-out;
+    }
+    .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.6s; }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    .btn-breathe {
+      animation: breathe 2.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans antialiased select-none">
+
+  <!-- Notificação Flutuante / Toast -->
+  <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-160%] transition-transform duration-300 ease-out bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 text-sm font-semibold border border-slate-700">
+    <span id="toastIcon" class="text-xl">ℹ️</span>
+    <span id="toastMessage">Notificação</span>
+  </div>
+
+  <!-- Cabeçalho Principal -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-6xl mx-auto px-4 py-3 sm:py-4 flex items-center justify-between gap-3">
+      
+      <!-- Identificação Institucional -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="switchView('welcome')">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center text-2xl font-bold shadow-md shadow-blue-500/20">
+          🏛️
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Ouvidoria Cidadã</h1>
+          <p class="text-xs text-slate-500 font-medium">Espaço de Escuta e Participação Social</p>
+        </div>
+      </div>
+
+      <!-- Controles & Navegação -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Controle de Áudio da Cabine -->
+        <button id="voiceToggleBtn" onclick="toggleVoiceAssistant()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all" title="Ativar ou desativar áudio falado">
+          <span id="voiceStatusIcon">🔊</span>
+          <span id="voiceStatusText" class="hidden sm:inline">Voz Ativa</span>
+        </button>
+
+        <!-- Navegação por Abas -->
+        <nav class="flex items-center bg-slate-100 p-1 rounded-xl gap-1 border border-slate-200">
+          <button id="tabWelcomeBtn" onclick="switchView('welcome')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-white text-blue-600 shadow-xs">
+            Início
+          </button>
+          <button id="tabCabinBtn" onclick="startBoothService()" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+            🎙️ Atendimento
+          </button>
+          <button id="tabFoldersBtn" onclick="switchView('folders')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+            📁 Arquivo <span id="badgeTotalRecords" class="ml-1 bg-slate-200 text-slate-700 text-xs px-1.5 py-0.5 rounded-full font-bold">0</span>
+          </button>
+        </nav>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
+
+    <!-- ========================================== -->
+    <!-- TELA 1: TELA INICIAL (STANDBY COM BOTÃO GIGANTE) -->
+    <!-- ========================================== -->
+    <section id="viewWelcome" class="flex flex-col items-center justify-center my-auto py-8 sm:py-14 text-center px-4">
+      
+      <div class="relative flex flex-col items-center max-w-2xl">
+        <!-- Aura Luminosa de Fundo -->
+        <div class="absolute -top-12 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <!-- Emblema de Boas-Vindas -->
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold tracking-wide uppercase mb-6 shadow-xs">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Cabine Disponível &bull; Toque para Começar
+        </div>
+
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
+          Sua voz faz a diferença no serviço público
+        </h2>
+        
+        <p class="text-base sm:text-lg text-slate-600 max-w-xl mb-10 leading-relaxed">
+          Deixe sua sugestão, elogio ou relato de forma simples e rápida. A cabine ouve, transcreve e organiza a sua mensagem.
+        </p>
+
+        <!-- Botão Gigante de Iniciar -->
+        <div class="relative flex items-center justify-center my-4">
+          <div class="absolute w-56 h-56 sm:w-64 sm:h-64 rounded-full bg-blue-500/20 pulse-animation pointer-events-none"></div>
+          
+          <button onclick="startBoothService()" class="btn-breathe relative z-10 w-44 h-44 sm:w-52 sm:h-52 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-blue-700 text-white flex flex-col items-center justify-center shadow-2xl shadow-blue-600/40 hover:scale-105 active:scale-95 transition-all duration-300 border-4 border-white group">
+            <span class="text-5xl sm:text-6xl mb-1 group-hover:scale-110 transition-transform">🎙️</span>
+            <span class="text-lg sm:text-xl font-extrabold tracking-wider uppercase drop-shadow-sm">Iniciar</span>
+            <span class="text-[11px] font-medium text-blue-100 opacity-90">Toque aqui</span>
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-400 mt-8">
+          Atendimento acessível e confidencial para todos os cidadãos
+        </p>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TELA 2: CABINE PRONTA PARA REGISTRO        -->
+    <!-- ========================================== -->
+    <section id="viewCabin" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Coluna da Esquerda: Gravação & Transcrição -->
+      <div class="lg:col-span-7 flex flex-col gap-5">
+        
+        <!-- Cartão de Gravação -->
+        <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+          <div class="absolute -top-24 -left-24 w-48 h-48 bg-blue-50 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-indigo-50 rounded-full blur-3xl pointer-events-none"></div>
+
+          <!-- Banner Falante do Assistente -->
+          <div id="aiSpeakerBanner" class="hidden w-full mb-5 bg-blue-50 border border-blue-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-left">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl animate-bounce">🗣️</span>
+              <div>
+                <p class="text-[11px] font-bold text-blue-900 uppercase tracking-wider">Orientação por Voz</p>
+                <p id="speakerMessage" class="text-xs text-blue-800 font-medium">"Olá! Toque no botão para gravar a sua manifestação..."</p>
+              </div>
+            </div>
+            <button onclick="stopAllAudioPlayback()" class="text-xs text-blue-700 hover:text-blue-900 font-bold px-2.5 py-1 bg-white rounded-xl border border-blue-200 shadow-xs">
+              Silenciar
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 mb-2">
+            <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span> Cabine pronta para registro
+            </span>
+          </div>
+
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1">Conte-nos a sua experiência</h2>
+          <p class="text-xs sm:text-sm text-slate-500 max-w-md mb-6">
+            Toque no botão central e fale livremente. O sistema transcreverá e entenderá o seu depoimento automaticamente.
+          </p>
+
+          <!-- Botão Central de Microfone -->
+          <div class="relative flex items-center justify-center my-2">
+            <div id="pulseRing" class="hidden absolute w-36 h-36 rounded-full bg-red-500/25 pulse-animation"></div>
+            <button id="mainMicBtn" onclick="toggleRecording()" class="relative z-10 w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-700 text-white flex flex-col items-center justify-center text-3xl shadow-xl shadow-blue-600/30 hover:scale-105 active:scale-95 transition-all duration-200 border-4 border-white">
+              <span id="micIcon">🎙️</span>
+              <span id="micActionText" class="text-[10px] font-extrabold uppercase tracking-wider mt-1 text-blue-100">Gravar</span>
+            </button>
+          </div>
+
+          <!-- Visualizador de Ondas Sonoras -->
+          <div id="soundWaveVisualizer" class="hidden flex items-center gap-1.5 h-8 my-2">
+            <span class="wave-bar w-1.5 bg-red-500 rounded-full"></span>
+            <span class="wave-bar w-1.5 bg-red-500 rounded-full"></span>
+            <span class="wave-bar w-1.5 bg-red-500 rounded-full"></span>
+            <span class="wave-bar w-1.5 bg-red-500 rounded-full"></span>
+            <span class="wave-bar w-1.5 bg-red-500 rounded-full"></span>
+          </div>
+
+          <!-- Status do Microfone & Tempo -->
+          <div class="mt-4 flex flex-col items-center gap-1">
+            <span id="recordTimer" class="font-mono text-sm font-bold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 hidden">00:00</span>
+            <span id="recordingStatusLabel" class="text-xs sm:text-sm font-semibold text-slate-600">Toque no microfone para começar a falar</span>
+          </div>
+
+          <!-- Reprodutor do Áudio Gravado -->
+          <div id="audioPlaybackContainer" class="w-full mt-5 hidden border-t border-slate-100 pt-4">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Áudio gravado para averiguação</label>
+              <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">Áudio Disponível</span>
+            </div>
+            <audio id="audioElement" controls class="w-full h-10 rounded-xl bg-slate-50"></audio>
+          </div>
+
+          <!-- Exemplos Rápidos para Demonstração -->
+          <div class="w-full mt-5 pt-4 border-t border-slate-100 flex flex-col items-center">
+            <span class="text-[11px] font-bold uppercase text-slate-400 tracking-wider mb-2">Ou selecione um exemplo prático:</span>
+            <div class="flex flex-wrap justify-center gap-1.5">
+              <button onclick="loadDemoScenario('elogio')" class="text-xs font-semibold px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">
+                👏 Elogio ao Atendimento
+              </button>
+              <button onclick="loadDemoScenario('reclamacao')" class="text-xs font-semibold px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">
+                ⚠️ Reclamação sobre Fila
+              </button>
+              <button onclick="loadDemoScenario('sugestao')" class="text-xs font-semibold px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">
+                💡 Sugestão de Melhoria
+              </button>
+              <button onclick="loadDemoScenario('denuncia')" class="text-xs font-semibold px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">
+                🚨 Denúncia
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transcrição do Depoimento -->
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col relative">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">📝</span>
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">Transcrição da Sua Fala</h3>
+            </div>
+            <button onclick="copyTranscription()" id="copyBtn" class="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
+              📋 Copiar Texto
+            </button>
+          </div>
+
+          <div class="relative">
+            <textarea id="transcriptionInput" rows="4" placeholder="O que você disser aparecerá aqui automaticamente após a fala. Você também pode digitar ou fazer correções se desejar..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-slate-800 text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none resize-none leading-relaxed"></textarea>
+            
+            <!-- Processamento Inteligente Overlay -->
+            <div id="aiAnalyzingOverlay" class="hidden absolute inset-0 bg-white/95 backdrop-blur-xs rounded-2xl flex flex-col items-center justify-center gap-2.5 p-4 z-10 border border-blue-200">
+              <div class="w-9 h-9 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <div class="text-center">
+                <p id="aiProgressStatus" class="text-xs font-bold text-blue-900">Transcrevendo áudio e identificando sentimentos...</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">Organizando seu registro com precisão</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center mt-3 pt-3 border-t border-slate-100 text-xs">
+            <span id="charCount" class="text-slate-400">0 caracteres</span>
+            <button onclick="triggerManualAnalysis()" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl transition-all flex items-center gap-1">
+              ✨ Atualizar Análise
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Coluna da Direita: Sentimentos & Finalização -->
+      <div class="lg:col-span-5 flex flex-col gap-5">
+        
+        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col gap-5">
+          
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                <span>🎯</span> Sentimentos & Classificação
+              </h3>
+              <p class="text-xs text-slate-500">Confirme ou selecione as opções que melhor representam seu relato</p>
+            </div>
+          </div>
+
+          <!-- Resumo da Manifestação -->
+          <div id="aiSummaryBox" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Resumo do Registro</span>
+              <button onclick="speakCurrentSummary()" id="speakSummaryBtn" class="hidden text-[11px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
+                🔊 Ouvir Resumo
+              </button>
+            </div>
+            <p id="summaryText" class="text-xs text-slate-500 italic leading-relaxed">
+              Grave sua fala ou digite seu texto para que o sistema gere a síntese da sua manifestação...
+            </p>
+            <div id="keywordTags" class="flex flex-wrap gap-1.5 mt-1 hidden"></div>
+          </div>
+
+          <!-- 1. Sentimento da Fala (Carinhas) -->
+          <div>
+            <div class="flex justify-between items-center mb-2.5">
+              <label class="text-xs font-extrabold uppercase text-slate-700 tracking-wider">
+                1. Sentimento Envolvido
+              </label>
+              <span id="selectedSentimentLabel" class="text-xs font-bold text-blue-600">Não selecionado</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1.5 sm:gap-2" id="sentimentGrid">
+              
+              <button type="button" onclick="selectSentiment('Excelente')" data-sentiment="Excelente" class="sentiment-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all text-center">
+                <span class="text-2xl mb-1">😍</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">Excelente</span>
+              </button>
+
+              <button type="button" onclick="selectSentiment('Satisfeito')" data-sentiment="Satisfeito" class="sentiment-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-green-300 hover:bg-green-50/50 transition-all text-center">
+                <span class="text-2xl mb-1">🙂</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">Satisfeito</span>
+              </button>
+
+              <button type="button" onclick="selectSentiment('Neutro')" data-sentiment="Neutro" class="sentiment-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-all text-center">
+                <span class="text-2xl mb-1">😐</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">Neutro</span>
+              </button>
+
+              <button type="button" onclick="selectSentiment('Preocupado')" data-sentiment="Preocupado" class="sentiment-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-amber-300 hover:bg-amber-50/50 transition-all text-center">
+                <span class="text-2xl mb-1">😟</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">Preocupado</span>
+              </button>
+
+              <button type="button" onclick="selectSentiment('Insatisfeito')" data-sentiment="Insatisfeito" class="sentiment-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-rose-300 hover:bg-rose-50/50 transition-all text-center">
+                <span class="text-2xl mb-1">😡</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700">Insatisfeito</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Teor da Manifestação -->
+          <div>
+            <div class="flex justify-between items-center mb-2.5">
+              <label class="text-xs font-extrabold uppercase text-slate-700 tracking-wider">
+                2. Teor da Manifestação
+              </label>
+              <span id="selectedCategoryLabel" class="text-xs font-bold text-blue-600">Não selecionado</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1.5 sm:gap-2" id="categoryGrid">
+              
+              <button type="button" onclick="selectCategory('Elogio')" data-category="Elogio" class="category-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition-all text-center">
+                <span class="text-xl">👏</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700 mt-0.5">Elogio</span>
+              </button>
+
+              <button type="button" onclick="selectCategory('Sugestão')" data-category="Sugestão" class="category-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition-all text-center">
+                <span class="text-xl">💡</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700 mt-0.5">Sugestão</span>
+              </button>
+
+              <button type="button" onclick="selectCategory('Dúvida')" data-category="Dúvida" class="category-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition-all text-center">
+                <span class="text-xl">❓</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700 mt-0.5">Dúvida</span>
+              </button>
+
+              <button type="button" onclick="selectCategory('Reclamação')" data-category="Reclamação" class="category-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition-all text-center">
+                <span class="text-xl">⚠️</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700 mt-0.5">Reclamação</span>
+              </button>
+
+              <button type="button" onclick="selectCategory('Denúncia')" data-category="Denúncia" class="category-chip flex flex-col items-center justify-center p-2 rounded-2xl border-2 border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition-all text-center">
+                <span class="text-xl">🚨</span>
+                <span class="text-[9px] sm:text-[10px] font-bold text-slate-700 mt-0.5">Denúncia</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. Nível de Prioridade / Urgência -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-extrabold uppercase text-slate-700 tracking-wider">
+                3. Grau de Urgência
+              </label>
+              <span id="selectedUrgencyLabel" class="text-xs font-bold text-blue-600">Média</span>
+            </div>
+            <div class="grid grid-cols-4 gap-2" id="urgencyGrid">
+              <button type="button" onclick="selectUrgency('Baixa')" data-urgency="Baixa" class="urgency-chip p-2 rounded-xl border-2 border-slate-100 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-all">Baixa</button>
+              <button type="button" onclick="selectUrgency('Média')" data-urgency="Média" class="urgency-chip p-2 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 text-[11px] font-bold transition-all">Média</button>
+              <button type="button" onclick="selectUrgency('Alta')" data-urgency="Alta" class="urgency-chip p-2 rounded-xl border-2 border-slate-100 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-all">Alta</button>
+              <button type="button" onclick="selectUrgency('Crítica')" data-urgency="Crítica" class="urgency-chip p-2 rounded-xl border-2 border-slate-100 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-all">Crítica</button>
+            </div>
+          </div>
+
+          <!-- Botão Principal: Finalizar Registro -->
+          <button id="saveManifestationBtn" onclick="confirmAndSave()" disabled class="w-full mt-3 py-4 px-5 rounded-2xl bg-slate-200 text-slate-400 font-extrabold text-base shadow-none transition-all flex items-center justify-center gap-2 cursor-not-allowed">
+            <span>✅</span> Finalizar Registro
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TELA 3: PASTAS DE ARQUIVOS (GESTÃO & HISTÓRICO) -->
+    <!-- ========================================== -->
+    <section id="viewFolders" class="hidden flex flex-col gap-6">
+      
+      <!-- Cabeçalho do Repositório -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+            <span>📁</span> Pastas de Registros da Ouvidoria
+          </h2>
+          <p class="text-xs text-slate-500">Manifestações salvas e organizadas para averiguação e acompanhamento.</p>
+        </div>
+
+        <!-- Filtros por Pasta -->
+        <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <button onclick="filterFolder('all')" class="folder-tab-btn px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-xs transition-all" data-folder="all">
+            Todas as Pastas (<span id="countFolderAll">0</span>)
+          </button>
+          <button onclick="filterFolder('Elogio')" class="folder-tab-btn px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-folder="Elogio">
+            👏 Elogios (<span id="countFolderElogio">0</span>)
+          </button>
+          <button onclick="filterFolder('Reclamação')" class="folder-tab-btn px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-folder="Reclamação">
+            ⚠️ Reclamações (<span id="countFolderReclamacao">0</span>)
+          </button>
+          <button onclick="filterFolder('Sugestão')" class="folder-tab-btn px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-folder="Sugestão">
+            💡 Sugestões (<span id="countFolderSugestao">0</span>)
+          </button>
+          <button onclick="filterFolder('Dúvida')" class="folder-tab-btn px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-folder="Dúvida">
+            ❓ Dúvidas (<span id="countFolderDuvida">0</span>)
+          </button>
+          <button onclick="filterFolder('Denúncia')" class="folder-tab-btn px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" data-folder="Denúncia">
+            🚨 Denúncias (<span id="countFolderDenuncia">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de Registros -->
+      <div id="recordsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Inserido dinamicamente -->
+      </div>
+
+      <!-- Estado Vazio -->
+      <div id="emptyRecordsState" class="bg-white rounded-3xl p-12 text-center border border-slate-200 flex flex-col items-center justify-center">
+        <span class="text-5xl mb-3">📭</span>
+        <h3 class="text-base font-bold text-slate-800">Nenhum registro nesta pasta</h3>
+        <p class="text-xs text-slate-500 max-w-sm mt-1 mb-5 leading-relaxed">
+          Os registros finalizados na cabine serão salvos e catalogados automaticamente na sua respectiva pasta temática.
+        </p>
+        <button onclick="startBoothService()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-extrabold hover:bg-blue-700 shadow-md transition-all">
+          Iniciar Novo Atendimento
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Modal de Confirmação de Sucesso -->
+  <div id="successModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center gap-4 border border-slate-100">
+      <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl font-bold shadow-inner">
+        ✅
+      </div>
+      <div>
+        <h3 class="text-xl font-extrabold text-slate-900 mb-1">Registro Finalizado com Sucesso!</h3>
+        <p class="text-xs text-slate-600 leading-relaxed max-w-xs">
+          Sua manifestação foi registrada e encaminhada para averiguação da equipe responsável.
+        </p>
+      </div>
+      <div id="successModalDetails" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-700 text-left flex flex-col gap-1">
+      </div>
+      <div class="flex gap-2 w-full mt-2">
+        <button onclick="closeSuccessModalAndRestart()" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all">
+          Novo Atendimento
+        </button>
+        <button onclick="closeSuccessModalAndGoFolders()" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all">
+          Ver Pastas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Detalhes da Transcrição -->
+  <div id="transcriptionModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl flex flex-col gap-4 border border-slate-200">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+          <span>📜</span> <span id="modalRecordTitle">Detalhes do Registro</span>
+        </h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 text-2xl font-bold">&times;</button>
+      </div>
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-sm text-slate-800 leading-relaxed max-h-60 overflow-y-auto" id="modalRecordBody">
+      </div>
+      <div class="flex justify-end">
+        <button onclick="closeModal()" class="px-4 py-2 bg-slate-800 text-white font-bold text-xs rounded-xl hover:bg-slate-900 transition-all">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rodapé -->
+  <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-400 font-medium">
+    Ouvidoria Cidadã &bull; Sistema de Atendimento e Escuta Ativa
+  </footer>
+
+  <script>
+    // =======================================================
+    // CONFIGURAÇÃO DOS ENDPOINTS E ESTADO GLOBAL
+    // =======================================================
+    const apiKey = ""; // Injetada em tempo de execução
+    const TEXT_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    const TTS_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+    // Estado do Assistente de Áudio
+    let isVoiceAssistantEnabled = true;
+    let currentAudioContext = null;
+    let currentAudioSource = null;
+
+    // Estado da Gravação
+    let isRecording = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioBlob = null;
+    let recordedAudioUrl = null;
+    let speechRecognition = null;
+    let timerInterval = null;
+    let recordSeconds = 0;
+
+    // Estado da Manifestação Atual
+    let currentManifestation = {
+      sentiment: '',
+      category: '',
+      urgency: 'Média',
+      summary: '',
+      keywords: [],
+      transcription: '',
+      audioUrl: null,
+      timestamp: null
+    };
+
+    // Repositório de Arquivos em Memória
+    let archivedRecords = [];
+    let currentFolderFilter = 'all';
+
+    // =======================================================
+    // INICIALIZAÇÃO
+    // =======================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      initOptionalBrowserSpeech();
+      setupInputListeners();
+    });
+
+    // Início do Atendimento com transição direta e orientação por voz
+    function startBoothService() {
+      switchView('cabin');
+      resetCabin();
+      triggerWelcomeVoice();
+    }
+
+    function setupInputListeners() {
+      const textarea = document.getElementById('transcriptionInput');
+      textarea.addEventListener('input', (e) => {
+        updateCharCount(e.target.value);
+        checkFormReady();
+      });
+    }
+
+    function updateCharCount(text) {
+      document.getElementById('charCount').innerText = `${text.length} caracteres`;
+    }
+
+    function initOptionalBrowserSpeech() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          speechRecognition = new SpeechRecognition();
+          speechRecognition.lang = 'pt-BR';
+          speechRecognition.continuous = true;
+          speechRecognition.interimResults = true;
+
+          speechRecognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = 0; i < event.results.length; i++) {
+              transcript += event.results[i][0].transcript + ' ';
+            }
+            if (transcript.trim()) {
+              document.getElementById('transcriptionInput').value = transcript.trim();
+              updateCharCount(transcript.trim());
+            }
+          };
+        } catch (e) {
+          console.log('Reconhecimento WebSpeech em modo auxiliar.');
+        }
+      }
+    }
+
+    // =======================================================
+    // ORIENTAÇÃO E SÍNTESE DE VOZ DA CABINE
+    // =======================================================
+    function toggleVoiceAssistant() {
+      isVoiceAssistantEnabled = !isVoiceAssistantEnabled;
+      const btn = document.getElementById('voiceToggleBtn');
+      const icon = document.getElementById('voiceStatusIcon');
+      const text = document.getElementById('voiceStatusText');
+
+      if (isVoiceAssistantEnabled) {
+        btn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all';
+        icon.innerText = '🔊';
+        text.innerText = 'Voz Ativa';
+        showToast('Áudio da cabine ativado!', 'info');
+      } else {
+        stopAllAudioPlayback();
+        btn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all';
+        icon.innerText = '🔇';
+        text.innerText = 'Voz Desligada';
+        showToast('Áudio da cabine desativado.', 'info');
+      }
+    }
+
+    function triggerWelcomeVoice() {
+      if (!isVoiceAssistantEnabled) return;
+      const welcomePhrase = "Olá! Seja bem-vindo à nossa Ouvidoria. Para iniciar seu atendimento, toque no botão do microfone e fale sobre a sua experiência.";
+      speakTextDirectly(welcomePhrase, "Aoede");
+    }
+
+    function speakCurrentSummary() {
+      const summary = currentManifestation.summary;
+      if (!summary) return;
+      speakTextDirectly(`Resumo do seu relato: ${summary}. Por favor, confirme as opções na tela para finalizar seu registro.`, "Aoede");
+    }
+
+    async function speakTextDirectly(textPrompt, voice = "Aoede") {
+      if (!isVoiceAssistantEnabled) return;
+
+      stopAllAudioPlayback();
+
+      const speakerBanner = document.getElementById('aiSpeakerBanner');
+      const speakerMsg = document.getElementById('speakerMessage');
+      speakerMsg.innerText = `"${textPrompt}"`;
+      speakerBanner.classList.remove('hidden');
+
+      const payload = {
+        contents: [
+          {
+            parts: [
+              { text: `Say warmly and naturally in Brazilian Portuguese: ${textPrompt}` }
+            ]
+          }
+        ],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: {
+                voiceName: voice
+              }
+            }
+          }
+        },
+        model: "gemini-2.5-flash-preview-tts"
+      };
+
+      try {
+        const result = await fetchWithRetry(TTS_API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const inlineAudio = result.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+        if (inlineAudio && inlineAudio.data) {
+          const sampleRate = extractSampleRate(inlineAudio.mimeType) || 24000;
+          playPcmAudio(inlineAudio.data, sampleRate);
+        } else {
+          speakWithBrowserFallback(textPrompt);
+        }
+      } catch (err) {
+        speakWithBrowserFallback(textPrompt);
+      }
+    }
+
+    function extractSampleRate(mimeType) {
+      if (!mimeType) return 24000;
+      const match = mimeType.match(/rate=(\d+)/);
+      return match ? parseInt(match[1], 10) : 24000;
+    }
+
+    function playPcmAudio(base64Data, sampleRate = 24000) {
+      try {
+        const binaryString = window.atob(base64Data);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const int16Array = new Int16Array(bytes.buffer);
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        currentAudioContext = new AudioContextClass({ sampleRate });
+
+        const audioBuffer = currentAudioContext.createBuffer(1, int16Array.length, sampleRate);
+        const channelData = audioBuffer.getChannelData(0);
+        for (let i = 0; i < int16Array.length; i++) {
+          channelData[i] = int16Array[i] / 32768.0;
+        }
+
+        currentAudioSource = currentAudioContext.createBufferSource();
+        currentAudioSource.buffer = audioBuffer;
+        currentAudioSource.connect(currentAudioContext.destination);
+
+        currentAudioSource.onended = () => {
+          document.getElementById('aiSpeakerBanner').classList.add('hidden');
+        };
+
+        currentAudioSource.start();
+      } catch (err) {
+        document.getElementById('aiSpeakerBanner').classList.add('hidden');
+      }
+    }
+
+    function stopAllAudioPlayback() {
+      if (currentAudioSource) {
+        try { currentAudioSource.stop(); } catch (e) {}
+        currentAudioSource = null;
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      document.getElementById('aiSpeakerBanner').classList.add('hidden');
+    }
+
+    function speakWithBrowserFallback(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 1.0;
+        utterance.onend = () => {
+          document.getElementById('aiSpeakerBanner').classList.add('hidden');
+        };
+        utterance.onerror = () => {
+          document.getElementById('aiSpeakerBanner').classList.add('hidden');
+        };
+        window.speechSynthesis.speak(utterance);
+      } else {
+        document.getElementById('aiSpeakerBanner').classList.add('hidden');
+      }
+    }
+
+    // =======================================================
+    // GRAVAÇÃO DE ÁUDIO
+    // =======================================================
+    async function toggleRecording() {
+      stopAllAudioPlayback();
+      if (!isRecording) {
+        await startRecording();
+      } else {
+        await stopRecording();
+      }
+    }
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        let mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
+        else if (MediaRecorder.isTypeSupported('audio/ogg')) mimeType = 'audio/ogg';
+
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          audioBlob = new Blob(audioChunks, { type: mimeType });
+          if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
+          recordedAudioUrl = URL.createObjectURL(audioBlob);
+          currentManifestation.audioUrl = recordedAudioUrl;
+
+          const audioElem = document.getElementById('audioElement');
+          audioElem.src = recordedAudioUrl;
+          document.getElementById('audioPlaybackContainer').classList.remove('hidden');
+
+          stream.getTracks().forEach(track => track.stop());
+
+          // Processar o áudio capturado
+          await processAudioRecording(audioBlob, mimeType);
+        };
+
+        mediaRecorder.start(250);
+        if (speechRecognition) {
+          try { speechRecognition.start(); } catch(e) {}
+        }
+
+        isRecording = true;
+        updateRecordingUI(true);
+        startTimer();
+        showToast('🎙️ Gravação iniciada. Pode falar!', 'info');
+      } catch (err) {
+        showToast('Microfone indisponível. Você também pode digitar seu depoimento.', 'warning');
+      }
+    }
+
+    async function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      if (speechRecognition) {
+        try { speechRecognition.stop(); } catch(e) {}
+      }
+
+      isRecording = false;
+      updateRecordingUI(false);
+      stopTimer();
+    }
+
+    function startTimer() {
+      recordSeconds = 0;
+      const timerElem = document.getElementById('recordTimer');
+      timerElem.classList.remove('hidden');
+      timerElem.innerText = '00:00';
+      
+      timerInterval = setInterval(() => {
+        recordSeconds++;
+        const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+        const secs = String(recordSeconds % 60).padStart(2, '0');
+        timerElem.innerText = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    function updateRecordingUI(active) {
+      const btn = document.getElementById('mainMicBtn');
+      const icon = document.getElementById('micIcon');
+      const actionText = document.getElementById('micActionText');
+      const statusLabel = document.getElementById('recordingStatusLabel');
+      const ring = document.getElementById('pulseRing');
+      const visualizer = document.getElementById('soundWaveVisualizer');
+
+      if (active) {
+        btn.classList.remove('from-blue-600', 'to-indigo-700', 'shadow-blue-600/30');
+        btn.classList.add('from-red-600', 'to-rose-600', 'shadow-red-600/40');
+        icon.innerText = '⏹️';
+        actionText.innerText = 'Concluir';
+        statusLabel.innerText = 'Gravando... Toque para finalizar quando terminar de falar.';
+        statusLabel.classList.add('text-red-600', 'font-bold');
+        ring.classList.remove('hidden');
+        visualizer.classList.remove('hidden');
+      } else {
+        btn.classList.add('from-blue-600', 'to-indigo-700', 'shadow-blue-600/30');
+        btn.classList.remove('from-red-600', 'to-rose-600', 'shadow-red-600/40');
+        icon.innerText = '🎙️';
+        actionText.innerText = 'Gravar';
+        statusLabel.innerText = 'Processando sua fala com precisão...';
+        statusLabel.classList.remove('text-red-600', 'font-bold');
+        ring.classList.add('hidden');
+        visualizer.classList.add('hidden');
+      }
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result.split(',')[1];
+          resolve(base64data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // =======================================================
+    // PROCESSAMENTO E TRANSCRIÇÃO INTELIGENTE
+    // =======================================================
+    async function processAudioRecording(blob, mimeType) {
+      const overlay = document.getElementById('aiAnalyzingOverlay');
+      const progressText = document.getElementById('aiProgressStatus');
+      overlay.classList.remove('hidden');
+      progressText.innerText = 'Transcrevendo áudio e identificando sentimentos...';
+
+      try {
+        const base64Audio = await blobToBase64(blob);
+        const cleanMime = mimeType.split(';')[0] || 'audio/webm';
+
+        const systemInstruction = `Você é um analista experiente de ouvidoria pública e atendimento ao cidadão.
+Receberá uma gravação em áudio com o depoimento de um cidadão.
+Suas instruções:
+1. Transcrever com máxima fidelidade tudo o que foi falado para o campo "transcription" em português.
+2. Identificar o sentimento predominante: escolha estritamente um de ["Excelente", "Satisfeito", "Neutro", "Preocupado", "Insatisfeito"].
+3. Identificar o teor da manifestação: escolha estritamente um de ["Elogio", "Sugestão", "Dúvida", "Reclamação", "Denúncia"].
+4. Definir o nível de urgência: escolha estritamente um de ["Baixa", "Média", "Alta", "Crítica"].
+5. Gerar um resumo claro e objetivo em 1 a 2 frases para o campo "summary".
+6. Extrair 3 a 5 palavras-chave para o campo "keywords".
+Responda exclusivamente no schema JSON definido.`;
+
+        const payload = {
+          contents: [
+            {
+              parts: [
+                { text: "Transcreva este áudio e organize a manifestação de ouvidoria:" },
+                {
+                  inlineData: {
+                    mimeType: cleanMime,
+                    data: base64Audio
+                  }
+                }
+              ]
+            }
+          ],
+          systemInstruction: {
+            parts: [{ text: systemInstruction }]
+          },
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                transcription: { type: "STRING" },
+                sentiment: {
+                  type: "STRING",
+                  enum: ["Excelente", "Satisfeito", "Neutro", "Preocupado", "Insatisfeito"]
+                },
+                category: {
+                  type: "STRING",
+                  enum: ["Elogio", "Sugestão", "Dúvida", "Reclamação", "Denúncia"]
+                },
+                urgency: {
+                  type: "STRING",
+                  enum: ["Baixa", "Média", "Alta", "Crítica"]
+                },
+                summary: { type: "STRING" },
+                keywords: {
+                  type: "ARRAY",
+                  items: { type: "STRING" }
+                }
+              },
+              required: ["transcription", "sentiment", "category", "urgency", "summary", "keywords"]
+            }
+          }
+        };
+
+        const result = await fetchWithRetry(TEXT_API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          const analysis = JSON.parse(rawText);
+          
+          if (analysis.transcription) {
+            document.getElementById('transcriptionInput').value = analysis.transcription;
+            updateCharCount(analysis.transcription);
+          }
+          
+          applyAnalysisResult(analysis);
+          showToast('✅ Fala transcrita com sucesso!', 'success');
+
+          // Fala de orientação humanizada
+          speakTextDirectly(`Entendemos o seu relato como ${analysis.category}, com sentimento ${analysis.sentiment}. Por favor, confirme as opções e toque em Finalizar Registro.`, "Aoede");
+        } else {
+          throw new Error('Falha no formato');
+        }
+      } catch (err) {
+        const existingText = document.getElementById('transcriptionInput').value.trim();
+        if (existingText.length > 5) {
+          fallbackLocalAnalysis(existingText);
+        } else {
+          showToast('Não foi possível transcrever automaticamente. Você pode digitar ou utilizar os exemplos.', 'warning');
+        }
+      } finally {
+        overlay.classList.add('hidden');
+        document.getElementById('recordingStatusLabel').innerText = 'Gravação finalizada. Confira os dados ao lado.';
+      }
+    }
+
+    // =======================================================
+    // ANÁLISE DE TEXTO
+    // =======================================================
+    async function triggerManualAnalysis() {
+      const text = document.getElementById('transcriptionInput').value.trim();
+      if (!text || text.length < 5) {
+        showToast('Por favor, digite ou grave um relato antes de analisar.', 'warning');
+        return;
+      }
+
+      const overlay = document.getElementById('aiAnalyzingOverlay');
+      const progressText = document.getElementById('aiProgressStatus');
+      overlay.classList.remove('hidden');
+      progressText.innerText = 'Organizando seu relato...';
+
+      const systemInstruction = `Você é um analista experiente de ouvidoria pública.
+Receberá o texto de um cidadão. Analise e retorne em formato JSON:
+- sentiment: exatamente um de ["Excelente", "Satisfeito", "Neutro", "Preocupado", "Insatisfeito"]
+- category: exatamente um de ["Elogio", "Sugestão", "Dúvida", "Reclamação", "Denúncia"]
+- urgency: exatamente um de ["Baixa", "Média", "Alta", "Crítica"]
+- summary: resumo objetivo em português em até 2 frases
+- keywords: lista de 3 a 5 palavras-chave`;
+
+      const payload = {
+        contents: [
+          {
+            parts: [{ text: `Analise a manifestação:\n"${text}"` }]
+          }
+        ],
+        systemInstruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              sentiment: {
+                type: "STRING",
+                enum: ["Excelente", "Satisfeito", "Neutro", "Preocupado", "Insatisfeito"]
+              },
+              category: {
+                type: "STRING",
+                enum: ["Elogio", "Sugestão", "Dúvida", "Reclamação", "Denúncia"]
+              },
+              urgency: {
+                type: "STRING",
+                enum: ["Baixa", "Média", "Alta", "Crítica"]
+              },
+              summary: { type: "STRING" },
+              keywords: {
+                type: "ARRAY",
+                items: { type: "STRING" }
+              }
+            },
+            required: ["sentiment", "category", "urgency", "summary", "keywords"]
+          }
+        }
+      };
+
+      try {
+        const result = await fetchWithRetry(TEXT_API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          const analysis = JSON.parse(rawText);
+          applyAnalysisResult(analysis);
+          showToast('✨ Análise realizada com sucesso!', 'success');
+          speakTextDirectly(`Seu relato foi classificado como ${analysis.category}. Toque em Finalizar Registro para concluir.`, "Aoede");
+        } else {
+          throw new Error('Falha na análise');
+        }
+      } catch (err) {
+        fallbackLocalAnalysis(text);
+      } finally {
+        overlay.classList.add('hidden');
+      }
+    }
+
+    // Exponential Backoff (1s, 2s, 4s, 8s, 16s)
+    async function fetchWithRetry(url, options, maxRetries = 5) {
+      const delays = [1000, 2000, 4000, 8000, 16000];
+      let attempt = 0;
+
+      while (attempt < maxRetries) {
+        try {
+          const response = await fetch(url, options);
+          if (response.ok) return await response.json();
+        } catch (error) {}
+        if (attempt < maxRetries - 1) {
+          await new Promise(r => setTimeout(r, delays[attempt]));
+        }
+        attempt++;
+      }
+      throw new Error('Tentativas esgotadas.');
+    }
+
+    function applyAnalysisResult(analysis) {
+      document.getElementById('speakSummaryBtn').classList.remove('hidden');
+
+      if (analysis.sentiment) selectSentiment(analysis.sentiment);
+      if (analysis.category) selectCategory(analysis.category);
+      if (analysis.urgency) selectUrgency(analysis.urgency);
+
+      const summaryElem = document.getElementById('summaryText');
+      summaryElem.innerText = `"${analysis.summary || 'Resumo gerado com sucesso.'}"`;
+      summaryElem.className = 'text-xs text-slate-800 font-semibold leading-relaxed';
+
+      const keywordContainer = document.getElementById('keywordTags');
+      keywordContainer.innerHTML = '';
+      if (analysis.keywords && analysis.keywords.length > 0) {
+        keywordContainer.classList.remove('hidden');
+        analysis.keywords.forEach(kw => {
+          const span = document.createElement('span');
+          span.className = 'text-[10px] font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-lg';
+          span.innerText = `#${kw}`;
+          keywordContainer.appendChild(span);
+        });
+      }
+
+      currentManifestation.summary = analysis.summary || '';
+      currentManifestation.keywords = analysis.keywords || [];
+
+      checkFormReady();
+    }
+
+    function fallbackLocalAnalysis(text) {
+      const lower = text.toLowerCase();
+      let sent = 'Neutro';
+      let cat = 'Sugestão';
+      let urg = 'Média';
+
+      if (lower.includes('excelente') || lower.includes('ótimo') || lower.includes('parabéns') || lower.includes('obrigado') || lower.includes('perfeito')) {
+        sent = 'Excelente'; cat = 'Elogio'; urg = 'Baixa';
+      } else if (lower.includes('péssimo') || lower.includes('ruim') || lower.includes('problema') || lower.includes('demora') || lower.includes('falta')) {
+        sent = 'Insatisfeito'; cat = 'Reclamação'; urg = 'Alta';
+      } else if (lower.includes('denúncia') || lower.includes('crime') || lower.includes('corrupção') || lower.includes('urgente') || lower.includes('irregular')) {
+        sent = 'Preocupado'; cat = 'Denúncia'; urg = 'Crítica';
+      } else if (lower.includes('como') || lower.includes('onde') || lower.includes('quando') || lower.includes('dúvida')) {
+        sent = 'Neutro'; cat = 'Dúvida'; urg = 'Baixa';
+      }
+
+      applyAnalysisResult({
+        sentiment: sent,
+        category: cat,
+        urgency: urg,
+        summary: text.slice(0, 110) + '...',
+        keywords: ['cidadão', 'serviço-público']
+      });
+    }
+
+    // =======================================================
+    // CENÁRIOS PRÁTICOS DE DEMONSTRAÇÃO
+    // =======================================================
+    function loadDemoScenario(type) {
+      stopAllAudioPlayback();
+      const scenarios = {
+        elogio: "Gostaria de parabenizar toda a equipe pelo atendimento excelente de hoje. Fui atendido muito rápido e todos foram muito atenciosos e profissionais.",
+        reclamacao: "Estou insatisfeito com o tempo de espera na fila de atendimento. Fiquei mais de duas horas aguardando e não havia assentos suficientes para todos.",
+        sugestao: "Sugiro a ampliação do horário de atendimento até as 19h para que os trabalhadores que saem mais tarde consigam utilizar o serviço.",
+        denuncia: "Venho denunciar irregularidades no cumprimento de horário e cobrança indevida de taxas que deveriam ser gratuitas neste setor."
+      };
+
+      const text = scenarios[type];
+      if (text) {
+        document.getElementById('transcriptionInput').value = text;
+        updateCharCount(text);
+        showToast(`Exemplo de ${type} carregado!`, 'info');
+        triggerManualAnalysis();
+      }
+    }
+
+    // =======================================================
+    // SELEÇÃO MANUAL PELO CIDADÃO
+    // =======================================================
+    function selectSentiment(sentiment) {
+      currentManifestation.sentiment = sentiment;
+      document.getElementById('selectedSentimentLabel').innerText = sentiment;
+
+      document.querySelectorAll('.sentiment-chip').forEach(chip => {
+        const val = chip.getAttribute('data-sentiment');
+        if (val === sentiment) {
+          chip.classList.add('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-500/20');
+          chip.classList.remove('border-slate-100');
+        } else {
+          chip.classList.remove('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-500/20');
+          chip.classList.add('border-slate-100');
+        }
+      });
+      checkFormReady();
+    }
+
+    function selectCategory(category) {
+      currentManifestation.category = category;
+      document.getElementById('selectedCategoryLabel').innerText = category;
+
+      document.querySelectorAll('.category-chip').forEach(chip => {
+        const val = chip.getAttribute('data-category');
+        if (val === category) {
+          chip.classList.add('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-500/20');
+          chip.classList.remove('border-slate-100');
+        } else {
+          chip.classList.remove('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-500/20');
+          chip.classList.add('border-slate-100');
+        }
+      });
+      checkFormReady();
+    }
+
+    function selectUrgency(urgency) {
+      currentManifestation.urgency = urgency;
+      document.getElementById('selectedUrgencyLabel').innerText = urgency;
+
+      document.querySelectorAll('.urgency-chip').forEach(chip => {
+        const val = chip.getAttribute('data-urgency');
+        if (val === urgency) {
+          chip.className = 'urgency-chip p-2 rounded-xl border-2 border-blue-500 bg-blue-50 text-blue-700 text-[11px] font-bold transition-all';
+        } else {
+          chip.className = 'urgency-chip p-2 rounded-xl border-2 border-slate-100 text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-all';
+        }
+      });
+    }
+
+    function checkFormReady() {
+      const text = document.getElementById('transcriptionInput').value.trim();
+      const hasText = text.length > 0;
+      const hasSentiment = !!currentManifestation.sentiment;
+      const hasCategory = !!currentManifestation.category;
+
+      const btn = document.getElementById('saveManifestationBtn');
+      if (hasText && hasSentiment && hasCategory) {
+        btn.disabled = false;
+        btn.className = 'w-full mt-3 py-4 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.99]';
+      } else {
+        btn.disabled = true;
+        btn.className = 'w-full mt-3 py-4 px-5 rounded-2xl bg-slate-200 text-slate-400 font-extrabold text-base shadow-none transition-all flex items-center justify-center gap-2 cursor-not-allowed';
+      }
+    }
+
+    // =======================================================
+    // FINALIZAR REGISTRO E ARQUIVAMENTO EM PASTAS
+    // =======================================================
+    function confirmAndSave() {
+      const text = document.getElementById('transcriptionInput').value.trim();
+      const now = new Date();
+      
+      const record = {
+        id: 'OUV-' + Math.floor(100000 + Math.random() * 900000),
+        transcription: text,
+        sentiment: currentManifestation.sentiment,
+        category: currentManifestation.category,
+        urgency: currentManifestation.urgency,
+        summary: currentManifestation.summary || text.slice(0, 90) + '...',
+        keywords: currentManifestation.keywords || [],
+        audioUrl: currentManifestation.audioUrl,
+        date: now.toLocaleDateString('pt-BR'),
+        time: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      archivedRecords.unshift(record);
+      updateFolderCounts();
+      renderFolderRecords();
+
+      // Fala final profissional e acolhedora voltada ao usuário
+      speakTextDirectly("Registro finalizado com sucesso! Muito obrigado pela sua colaboração e participação cidadã.", "Aoede");
+
+      // Modal de confirmação
+      showSuccessModal(record);
+    }
+
+    function showSuccessModal(record) {
+      const modal = document.getElementById('successModal');
+      const details = document.getElementById('successModalDetails');
+
+      details.innerHTML = `
+        <div class="flex justify-between border-b border-slate-200 pb-1.5 font-semibold">
+          <span>Protocolo:</span> <span class="font-mono text-blue-600 font-bold">${record.id}</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span>Pasta / Tipo:</span> <span class="font-bold text-slate-900">${record.category}</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span>Sentimento:</span> <span class="font-bold text-slate-900">${record.sentiment}</span>
+        </div>
+        <div class="text-[11px] text-slate-500 mt-1 italic">
+          "${record.summary}"
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeSuccessModalAndRestart() {
+      document.getElementById('successModal').classList.add('hidden');
+      switchView('welcome');
+      resetCabin();
+    }
+
+    function closeSuccessModalAndGoFolders() {
+      document.getElementById('successModal').classList.add('hidden');
+      switchView('folders');
+      resetCabin();
+    }
+
+    function resetCabin() {
+      document.getElementById('transcriptionInput').value = '';
+      document.getElementById('audioPlaybackContainer').classList.add('hidden');
+      document.getElementById('audioElement').src = '';
+      document.getElementById('speakSummaryBtn').classList.add('hidden');
+      document.getElementById('summaryText').innerText = 'Grave sua fala ou digite seu texto para que o sistema gere a síntese da sua manifestação...';
+      document.getElementById('summaryText').className = 'text-xs text-slate-500 italic leading-relaxed';
+      document.getElementById('keywordTags').innerHTML = '';
+      document.getElementById('keywordTags').classList.add('hidden');
+      document.getElementById('selectedSentimentLabel').innerText = 'Não selecionado';
+      document.getElementById('selectedCategoryLabel').innerText = 'Não selecionado';
+      document.getElementById('charCount').innerText = '0 caracteres';
+      
+      document.querySelectorAll('.sentiment-chip').forEach(c => {
+        c.classList.remove('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-500/20');
+        c.classList.add('border-slate-100');
+      });
+      document.querySelectorAll('.category-chip').forEach(c => {
+        c.classList.remove('border-blue-600', 'bg-blue-50', 'ring-2', 'ring-blue-500/20');
+        c.classList.add('border-slate-100');
+      });
+
+      currentManifestation = {
+        sentiment: '',
+        category: '',
+        urgency: 'Média',
+        summary: '',
+        keywords: [],
+        transcription: '',
+        audioUrl: null,
+        timestamp: null
+      };
+
+      selectUrgency('Média');
+      checkFormReady();
+    }
+
+    function updateFolderCounts() {
+      document.getElementById('badgeTotalRecords').innerText = archivedRecords.length;
+      document.getElementById('countFolderAll').innerText = archivedRecords.length;
+
+      const categories = ['Elogio', 'Reclamação', 'Sugestão', 'Dúvida', 'Denúncia'];
+      categories.forEach(cat => {
+        const count = archivedRecords.filter(r => r.category === cat).length;
+        const normalized = cat.replace('ç', 'c').replace('ã', 'a').replace('ú', 'u');
+        const countElem = document.getElementById(`countFolder${normalized}`);
+        if (countElem) countElem.innerText = count;
+      });
+    }
+
+    function filterFolder(folderCategory) {
+      currentFolderFilter = folderCategory;
+      
+      document.querySelectorAll('.folder-tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-folder') === folderCategory) {
+          btn.className = 'folder-tab-btn px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-xs transition-all';
+        } else {
+          btn.className = 'folder-tab-btn px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all';
+        }
+      });
+
+      renderFolderRecords();
+    }
+
+    function getSentimentEmoji(sentiment) {
+      switch(sentiment) {
+        case 'Excelente': return '😍';
+        case 'Satisfeito': return '🙂';
+        case 'Neutro': return '😐';
+        case 'Preocupado': return '😟';
+        case 'Insatisfeito': return '😡';
+        default: return '💬';
+      }
+    }
+
+    function getUrgencyBadgeClass(urgency) {
+      switch(urgency) {
+        case 'Crítica': return 'bg-rose-100 text-rose-800 border-rose-200';
+        case 'Alta': return 'bg-orange-100 text-orange-800 border-orange-200';
+        case 'Média': return 'bg-blue-100 text-blue-800 border-blue-200';
+        default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      }
+    }
+
+    function renderFolderRecords() {
+      const container = document.getElementById('recordsContainer');
+      const emptyState = document.getElementById('emptyRecordsState');
+      container.innerHTML = '';
+
+      const filtered = currentFolderFilter === 'all' 
+        ? archivedRecords 
+        : archivedRecords.filter(r => r.category === currentFolderFilter);
+
+      if (filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        container.classList.add('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      container.classList.remove('hidden');
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-3xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow gap-3';
+        
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="text-xs font-mono font-bold text-slate-400">#${item.id}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] px-2 py-0.5 rounded-full font-bold border ${getUrgencyBadgeClass(item.urgency)}">${item.urgency}</span>
+                <span class="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-blue-50 text-blue-700 border border-blue-200">${item.category}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 mb-2.5">
+              <span class="text-2xl">${getSentimentEmoji(item.sentiment)}</span>
+              <div>
+                <div class="text-xs font-bold text-slate-900 leading-tight">Sentimento: ${item.sentiment}</div>
+                <div class="text-[10px] text-slate-400">${item.date} às ${item.time}</div>
+              </div>
+            </div>
+
+            <p class="text-xs font-medium text-slate-700 line-clamp-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 mb-2 leading-relaxed">
+              "${item.summary || item.transcription}"
+            </p>
+
+            ${item.keywords && item.keywords.length > 0 ? `
+              <div class="flex flex-wrap gap-1 mb-2">
+                ${item.keywords.map(k => `<span class="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold">#${k}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="border-t border-slate-100 pt-3 flex flex-col gap-2">
+            ${item.audioUrl ? `
+              <audio controls src="${item.audioUrl}" class="w-full h-8 rounded-xl bg-slate-50"></audio>
+            ` : `
+              <span class="text-[10px] text-slate-400 italic">Depoimento registrado por texto</span>
+            `}
+            <button onclick="viewFullTranscription('${item.id}')" class="text-left text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center justify-between mt-1">
+              <span>Ver relato completo</span>
+              <span>&rarr;</span>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function viewFullTranscription(recordId) {
+      const item = archivedRecords.find(r => r.id === recordId);
+      if (!item) return;
+
+      document.getElementById('modalRecordTitle').innerText = `Registro ${item.id} - ${item.category} (${item.sentiment})`;
+      document.getElementById('modalRecordBody').innerText = item.transcription;
+      document.getElementById('transcriptionModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('transcriptionModal').classList.add('hidden');
+    }
+
+    // =======================================================
+    // NAVEGAÇÃO DE TELAS & UTILITÁRIOS
+    // =======================================================
+    function switchView(viewName) {
+      stopAllAudioPlayback();
+      const viewWelcome = document.getElementById('viewWelcome');
+      const viewCabin = document.getElementById('viewCabin');
+      const viewFolders = document.getElementById('viewFolders');
+      
+      const tabWelcomeBtn = document.getElementById('tabWelcomeBtn');
+      const tabCabinBtn = document.getElementById('tabCabinBtn');
+      const tabFoldersBtn = document.getElementById('tabFoldersBtn');
+
+      viewWelcome.classList.add('hidden');
+      viewCabin.classList.add('hidden');
+      viewFolders.classList.add('hidden');
+
+      tabWelcomeBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900';
+      tabCabinBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900';
+      tabFoldersBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900';
+
+      if (viewName === 'welcome') {
+        viewWelcome.classList.remove('hidden');
+        tabWelcomeBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-white text-blue-600 shadow-xs';
+      } else if (viewName === 'cabin') {
+        viewCabin.classList.remove('hidden');
+        tabCabinBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-white text-blue-600 shadow-xs';
+      } else {
+        viewFolders.classList.remove('hidden');
+        tabFoldersBtn.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all bg-white text-blue-600 shadow-xs';
+        renderFolderRecords();
+      }
+    }
+
+    function copyTranscription() {
+      const text = document.getElementById('transcriptionInput').value;
+      if (!text) {
+        showToast('Nenhum texto para copiar ainda.', 'info');
+        return;
+      }
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast('Texto copiado com sucesso!', 'success');
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.innerText = message;
+      if (type === 'success') toastIcon.innerText = '✅';
+      else if (type === 'warning') toastIcon.innerText = '⚠️';
+      else toastIcon.innerText = 'ℹ️';
+
+      toast.classList.remove('translate-y-[-160%]');
+      toast.classList.add('translate-y-0');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0');
+        toast.classList.add('translate-y-[-160%]');
+      }, 3500);
+    }
+  </script>
+</body>
+</html>
