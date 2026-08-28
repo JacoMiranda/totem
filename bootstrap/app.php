@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'device.key' => \App\Http\Middleware\DeviceApiKeyAuth::class,
         ]);
+
+        // Fase 8 (hardening) - aplicado globalmente (web + api), tanto os
+        // shells Blade (kiosk/admin) quanto as respostas JSON precisam
+        // dos mesmos headers de segurança.
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

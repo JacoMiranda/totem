@@ -32,3 +32,10 @@ Schedule::call(function () {
 Schedule::call(function () {
     Artisan::call('ouvidoria:checar-sla');
 })->name('checar-sla')->hourly()->withoutOverlapping(10);
+
+// Fase 8 (LGPD) - roda uma vez por dia, de madrugada (baixo tráfego),
+// bem depois da checagem de SLA horária pra nunca competir por recursos
+// no mesmo minuto.
+Schedule::call(function () {
+    Artisan::call('ouvidoria:expurgar-lgpd');
+})->name('expurgar-lgpd')->dailyAt('03:30')->withoutOverlapping(30);

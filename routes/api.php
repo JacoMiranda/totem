@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\ManifestationController as AdminManifestation
 use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\ManifestationController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPrefController;
@@ -18,6 +19,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     })->middleware('auth:sanctum');
+
+    // Health (docs/API.md) - sem auth, usado na Fase 9 pra validar deploy.
+    Route::get('/health', [HealthController::class, 'health']);
+    Route::get('/health/devices', [HealthController::class, 'devices'])->middleware('auth:sanctum');
 
     // Auth da equipe (Sanctum bearer, não cookie/refresh - ver AuthController).
     Route::prefix('auth')->group(function () {
@@ -87,5 +92,10 @@ Route::prefix('v1')->group(function () {
     // Consulta pública (sem auth) - rate-limited contra enumeração de
     // protocolo (docs/API.md: "Erros genéricos... proteção contra
     // enumeração"), separado do limite genérico da API.
-    Route::middleware('throttle:20,1')->get('/public/manifestations/{protocolo}', [PublicManifestationController::class, 'show']);
+    Route::middleware('throttle:20,1')->group(function () {
+        Route::get('/public/manifestations/{protocolo}', [PublicManifestationController::class, 'show']);
+        // LGPD (Fase 8) - eliminação/anonimização a pedido do próprio
+        // cidadão, mesma verificação protocolo+PIN, mesmo throttle.
+        Route::delete('/public/manifestations/{protocolo}', [PublicManifestationController::class, 'eliminar']);
+    });
 });

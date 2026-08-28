@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Manifestation;
+use App\Services\AnonimizacaoService;
 use App\Services\ProtocoloService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,15 +18,16 @@ use Illuminate\Http\Request;
  */
 class PublicManifestationController extends Controller
 {
-    public function __construct(private readonly ProtocoloService $protocolo) {}
+    public function __construct(
+        private readonly ProtocoloService $protocolo,
+        private readonly AnonimizacaoService $anonimizacao,
+    ) {}
 
     public function show(Request $request, string $protocolo): JsonResponse
     {
-        $pin = $request->query('pin', '');
-        $manifestacao = Manifestation::where('protocolo', $protocolo)->first();
-
-        if (! $manifestacao || ! $pin || $manifestacao->pin_acompanhamento !== $this->protocolo->hashPin($pin)) {
-            return response()->json(['error' => ['code' => 'NOT_FOUND', 'message' => 'Protocolo ou PIN inválidos.']], 404);
+        $manifestacao = $this->resolverPorPin($protocolo, $request->query('pin', ''));
+        if (! $manifestacao) {
+            return $this->erroGenerico();
         }
 
         return response()->json([
@@ -38,5 +40,41 @@ class PublicManifestationController extends Controller
             ])->values(),
             'respostaOficial' => $manifestacao->resposta_publicada_em ? $manifestacao->resposta_oficial : null,
         ]);
+    }
+
+    /**
+     * Eliminação/anonimização a pedido do próprio cidadão (LGPD, docs/
+     * PLANO-SISTEMA-PROFISSIONAL.md Fase 8: "export/eliminação a pedido") -
+     * mesma verificação protocolo+PIN do `show()`, mesmo erro genérico.
+     * Irreversível: depois de chamado, `show()` desse protocolo passa a
+     * devolver dados já anonimizados (o protocolo/status continuam
+     * existindo pra fins estatísticos, o conteúdo pessoal não).
+     */
+    public function eliminar(Request $request, string $protocolo): JsonResponse
+    {
+        $manifestacao = $this->resolverPorPin($protocolo, $request->query('pin', ''));
+        if (! $manifestacao) {
+            return $this->erroGenerico();
+        }
+
+        $this->anonimizacao->anonimizar($manifestacao);
+
+        return response()->json(['ok' => true, 'mensagem' => 'Dados pessoais removidos. O protocolo continua válido para fins estatísticos.']);
+    }
+
+    private function resolverPorPin(string $protocolo, string $pin): ?Manifestation
+    {
+        $manifestacao = Manifestation::where('protocolo', $protocolo)->first();
+
+        if (! $manifestacao || ! $pin || $manifestacao->pin_acompanhamento !== $this->protocolo->hashPin($pin)) {
+            return null;
+        }
+
+        return $manifestacao;
+    }
+
+    private function erroGenerico(): JsonResponse
+    {
+        return response()->json(['error' => ['code' => 'NOT_FOUND', 'message' => 'Protocolo ou PIN inválidos.']], 404);
     }
 }
