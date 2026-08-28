@@ -91,6 +91,25 @@ class AiControllerTest extends TestCase
         $resposta->assertJsonPath('error.code', 'AI_UNAVAILABLE');
     }
 
+    /** HTTP 400 da Gemini (chave inválida etc.) falha na hora - não gasta as 5 tentativas com backoff. */
+    public function test_transcrever_audio_com_gemini_400_nao_retenta(): void
+    {
+        $chamadas = 0;
+        Http::fake(['generativelanguage.googleapis.com/*' => function () use (&$chamadas) {
+            $chamadas++;
+
+            return Http::response(['error' => ['message' => 'API key not valid', 'status' => 'INVALID_ARGUMENT']], 400);
+        }]);
+        [$chave] = $this->criarDevice();
+
+        $arquivo = UploadedFile::fake()->create('gravacao.webm', 100, 'audio/webm');
+        $resposta = $this->post('/api/v1/ai/transcribe-analyze', ['file' => $arquivo], ['X-Device-Key' => $chave]);
+
+        $resposta->assertStatus(503);
+        $resposta->assertJsonPath('error.code', 'AI_UNAVAILABLE');
+        $this->assertSame(1, $chamadas, 'HTTP 400 não deve ser retentado');
+    }
+
     /** JSON {texto} nesse mesmo endpoint (sem áudio) - devolve transcription = texto já conhecido. */
     public function test_transcrever_analyze_com_json_texto(): void
     {

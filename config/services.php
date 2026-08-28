@@ -41,11 +41,17 @@ return [
     // original que a expunha direto no HTML.
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
-        // gemini-2.5-flash-preview-09-2025 (nome original do protótipo) foi
-        // descontinuado pelo Google - confirmado via GET /v1beta/models
-        // (2026-08-28) que não existe mais na lista; gemini-2.5-flash (sem
-        // sufixo de preview datado) é o sucessor estável na mesma família.
-        'text_model' => env('GEMINI_TEXT_MODEL', 'gemini-2.5-flash'),
+        // Histórico de modelos (Google aposenta rápido):
+        //  - gemini-2.5-flash-preview-09-2025 (protótipo): sumiu da lista.
+        //  - gemini-2.5-flash: passou a devolver 404 "no longer available
+        //    to new users" (2026-08-28) - a conta é tratada como "novo
+        //    usuário".
+        // `gemini-flash-latest` é o alias que o Google mantém apontando pro
+        // flash atual - evita ter que perseguir o número da versão. Se
+        // precisar fixar: gemini-3.6-flash era o recomendado na mensagem de
+        // deprecação. `analisarTexto`/`analisarAudio` (responseSchema +
+        // thinkingBudget:0) testados OK nesse alias.
+        'text_model' => env('GEMINI_TEXT_MODEL', 'gemini-flash-latest'),
         'tts_model' => env('GEMINI_TTS_MODEL', 'gemini-2.5-flash-preview-tts'),
         'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta/models'),
     ],

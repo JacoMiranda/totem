@@ -207,15 +207,47 @@ class GeminiAiService
     private function chamarGeminiComRetry(string $model, array $payload): array
     {
         $apiKey = config('services.gemini.api_key');
-        $url = rtrim(config('services.gemini.base_url'), '/')."/{$model}:generateContent?key={$apiKey}";
+        $url = rtrim(config('services.gemini.base_url'), '/')."/{$model}:generateContent";
 
         for ($tentativa = 0; $tentativa < self::MAX_TENTATIVAS; $tentativa++) {
             try {
-                $response = Http::timeout(60)->post($url, $payload);
+                // Chave no header `x-goog-api-key`, NÃO em `?key=` na URL:
+                // é o método atual do Google (funciona tanto pras chaves
+                // `AIza...` quanto pras novas `AQ....`, restritas à API
+                // Gemini) e mantém o segredo fora de URLs, logs de proxy e
+                // do corpo que registramos em erro.
+                $response = Http::timeout(60)
+                    ->withHeaders(['x-goog-api-key' => $apiKey])
+                    ->post($url, $payload);
                 if ($response->successful()) {
                     return $response->json() ?? [];
                 }
-                Log::warning('GeminiAiService: resposta não-2xx', ['model' => $model, 'status' => $response->status(), 'tentativa' => $tentativa]);
+
+                // 400/401/403/404: requisição ou credencial inválida - repetir
+                // não conserta e só faz o cidadão esperar o backoff inteiro
+                // (~31s) antes do fallback. Falha na hora, com o corpo do erro
+                // no log (a API Gemini explica a causa ali - ex.: "API key not
+                // valid", "API_KEY_INVALID").
+                if (in_array($response->status(), [400, 401, 403, 404], true)) {
+                    Log::error('GeminiAiService: erro não-recuperável da Gemini', ['model' => $model, 'status' => $response->status(), 'corpo' => mb_substr($response->body(), 0, 500)]);
+
+                    throw new AiUnavailableException("Gemini ({$model}) rejeitou a requisição (HTTP {$response->status()}).");
+                }
+
+                Log::warning('GeminiAiService: resposta não-2xx', ['model' => $model, 'status' => $response->status(), 'tentativa' => $tentativa, 'corpo' => mb_substr($response->body(), 0, 500)]);
+
+                // 429 (RESOURCE_EXHAUSTED): a Gemini diz quanto esperar
+                // (RetryInfo.retryDelay ou "Please retry in Ns"). O backoff
+                // fixo 1/2/4/8/16s quase nunca é suficiente - honramos a
+                // sugestão (limitada a 65s pra não pendurar um worker).
+                if ($response->status() === 429 && $tentativa < self::MAX_TENTATIVAS - 1) {
+                    $espera = $this->esperaSugeridaSegundos($response) ?? ($this->delaysMs()[$tentativa] / 1000);
+                    sleep((int) ceil(min($espera, 65)));
+
+                    continue;
+                }
+            } catch (AiUnavailableException $e) {
+                throw $e;
             } catch (Throwable $e) {
                 Log::warning('GeminiAiService: falha de conexão', ['model' => $model, 'erro' => $e->getMessage(), 'tentativa' => $tentativa]);
             }
@@ -226,6 +258,23 @@ class GeminiAiService
         }
 
         throw new AiUnavailableException("Gemini ({$model}) indisponível após ".self::MAX_TENTATIVAS.' tentativas.');
+    }
+
+    /** Segundos de espera sugeridos pela Gemini num 429, ou null se não vier. */
+    private function esperaSugeridaSegundos(\Illuminate\Http\Client\Response $response): ?float
+    {
+        foreach (($response->json('error.details') ?? []) as $detalhe) {
+            if (($detalhe['@type'] ?? '') === 'type.googleapis.com/google.rpc.RetryInfo'
+                && preg_match('/([\d.]+)s/', (string) ($detalhe['retryDelay'] ?? ''), $m)) {
+                return (float) $m[1];
+            }
+        }
+
+        if (preg_match('/retry in ([\d.]+)s/i', (string) $response->json('error.message'), $m)) {
+            return (float) $m[1];
+        }
+
+        return null;
     }
 
     /**
