@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\ManifestationController;
 use App\Http\Controllers\Api\PublicManifestationController;
+use App\Http\Controllers\Api\RequerenteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,11 @@ Route::prefix('v1')->group(function () {
             Route::post('/analyze-text', [AiController::class, 'analisarTexto']);
             Route::post('/tts', [AiController::class, 'tts']);
         });
+
+        // Cadastro de requerente (pessoa/empresa) - opcional, o cidadão
+        // escolhe se identificar ou seguir anônimo (modo padrão do totem).
+        Route::post('/people', [RequerenteController::class, 'findOrCreatePerson']);
+        Route::post('/companies', [RequerenteController::class, 'findOrCreateCompany']);
     });
 
     // Painel (Sanctum bearer, RBAC via Gates - ver AppServiceProvider).

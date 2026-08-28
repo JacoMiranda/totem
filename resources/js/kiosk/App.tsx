@@ -1,25 +1,43 @@
-import { getSentimentEmoji, SENTIMENTS } from '../shared'
+import { useEffect, useState } from 'react';
+import { SetupScreen } from './components/SetupScreen';
+import { getDeviceConfig } from './lib/deviceConfig';
+import { iniciarSincronizacaoEmSegundoPlano } from './lib/sync';
+import { useJourneyStore } from './store/journeyStore';
+import { Classificacao } from './steps/Classificacao';
+import { Conclusao } from './steps/Conclusao';
+import { Inicio } from './steps/Inicio';
+import { Relato } from './steps/Relato';
 
 /**
- * Placeholder da Fase 0 - só confirma que resources/js/shared resolve
- * corretamente daqui (projeto único - import relativo, não pacote npm
- * separado). A jornada de verdade (Início -> Relato -> Classificação ->
- * Conclusão -> Arquivo) entra na Fase 3, ver docs/MIGRACAO-DO-PROTOTIPO.md.
+ * Jornada do cidadão (Início -> Relato -> Classificação -> Conclusão) -
+ * ver docs/MIGRACAO-DO-PROTOTIPO.md e Fase 3 do roteiro adaptado
+ * (CLAUDE.md/plano de sessão). Antes da jornada, exige a configuração de
+ * dispositivo (device key) uma única vez por totem físico.
  */
 function App() {
-  return (
-    <main style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>Totem — Ouvidoria Cidadã (kiosk)</h1>
-      <p>Fase 0: fundação. A jornada do cidadão entra na Fase 3.</p>
-      <p>
-        {SENTIMENTS.map((s) => (
-          <span key={s} title={s} style={{ fontSize: '2rem', margin: '0 0.5rem' }}>
-            {getSentimentEmoji(s)}
-          </span>
-        ))}
-      </p>
-    </main>
-  )
+  const [configurado, setConfigurado] = useState(() => Boolean(getDeviceConfig()));
+  const etapa = useJourneyStore((s) => s.etapa);
+
+  useEffect(() => {
+    if (!configurado) return undefined;
+
+    return iniciarSincronizacaoEmSegundoPlano();
+  }, [configurado]);
+
+  if (!configurado) {
+    return <SetupScreen onConcluido={() => setConfigurado(true)} />;
+  }
+
+  switch (etapa) {
+    case 'relato':
+      return <Relato />;
+    case 'classificacao':
+      return <Classificacao />;
+    case 'conclusao':
+      return <Conclusao />;
+    default:
+      return <Inicio />;
+  }
 }
 
-export default App
+export default App;

@@ -36,11 +36,15 @@ export const aiAnalysisResponseSchema = z.object({
 });
 export type AiAnalysisResponse = z.infer<typeof aiAnalysisResponseSchema>;
 
-/** Resposta de POST /manifestations (docs/API.md). */
+/**
+ * Resposta de POST /manifestations (docs/API.md). `pin` é `null` num
+ * replay idempotente (mesmo `clientId` reenviado) - o cidadão já recebeu
+ * o PIN na primeira vez, o hash não permite reexibir mesmo que quiséssemos.
+ */
 export const manifestationCreatedResponseSchema = z.object({
   id: z.string().uuid(),
   protocolo: z.string(),
-  pin: z.string().length(4),
+  pin: z.string().length(4).nullable(),
   status: z.string(),
   audioUploadUrl: z.string(),
 });
