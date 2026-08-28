@@ -62,6 +62,13 @@ class GeminiAiService
             'systemInstruction' => ['parts' => [['text' => $systemInstruction]]],
             'generationConfig' => [
                 'responseMimeType' => 'application/json',
+                // thinkingBudget=0: gemini-2.5-flash (sucessor do modelo
+                // preview original, descontinuado) ativa "thinking" estendido
+                // por padrão - achado real: uma chamada simples de
+                // classificação levou >30s (estourou max_execution_time do
+                // PHP) sem isso. Essa tarefa é classificação direta, não
+                // precisa de raciocínio estendido.
+                'thinkingConfig' => ['thinkingBudget' => 0],
                 'responseSchema' => [
                     'type' => 'OBJECT',
                     'properties' => [
@@ -107,6 +114,8 @@ class GeminiAiService
             'systemInstruction' => ['parts' => [['text' => $systemInstruction]]],
             'generationConfig' => [
                 'responseMimeType' => 'application/json',
+                // ver comentário equivalente em analisarAudio().
+                'thinkingConfig' => ['thinkingBudget' => 0],
                 'responseSchema' => [
                     'type' => 'OBJECT',
                     'properties' => [

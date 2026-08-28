@@ -32,6 +32,15 @@ class AiController extends Controller
      */
     public function transcreverEAnalisar(Request $request): JsonResponse
     {
+        // Chamadas reais à Gemini observadas entre ~5s e ~26s (achado
+        // testando contra a API de verdade, não só Http::fake) - bem acima
+        // do max_execution_time padrão de 30s de alguns SAPIs (visto
+        // batendo o limite localmente), então soltamos a rédea aqui em vez
+        // de arriscar um FatalError no meio de uma chamada que teria dado
+        // certo. set_time_limit não depende de proc_open/exec, funciona
+        // igual nessa hospedagem.
+        set_time_limit(120);
+
         if ($request->hasFile('file')) {
             $arquivo = $request->file('file');
             $base64Audio = base64_encode(file_get_contents($arquivo->getRealPath()));
@@ -62,6 +71,8 @@ class AiController extends Controller
     /** `{ texto }` → mesmo shape sem `transcription` - equivale a `triggerManualAnalysis`. */
     public function analisarTexto(Request $request): JsonResponse
     {
+        set_time_limit(120); // ver comentário em transcreverEAnalisar().
+
         $validado = $request->validate(['texto' => ['required', 'string', 'min:5']]);
 
         try {
@@ -85,6 +96,8 @@ class AiController extends Controller
      */
     public function tts(Request $request): JsonResponse
     {
+        set_time_limit(120); // ver comentário em transcreverEAnalisar().
+
         $validado = $request->validate([
             'texto' => ['required', 'string'],
             'voz' => ['sometimes', 'string'],
