@@ -101,9 +101,17 @@ class TeamPanelApiTest extends TestCase
         $leitor = User::factory()->create(['role' => UserRole::Leitor]);
         $manifestacao = $this->criarManifestacao();
 
+        // `data` precisa ser um array PURO de resumos, não o objeto
+        // paginador aninhado (bug real: $pagina->through() sem ->items()
+        // devolve o próprio paginador, que serializa como
+        // {current_page, data, ...} em vez de [...] - quebrava o
+        // ManifestationsList.tsx do painel, que espera `data.data` como
+        // array pra mapear).
         $this->actingAs($leitor, 'sanctum')->getJson('/api/v1/manifestations')
             ->assertOk()
-            ->assertJsonPath('meta.total', 1);
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.protocolo', $manifestacao->protocolo)
+            ->assertJsonCount(1, 'data');
 
         $this->actingAs($leitor, 'sanctum')->getJson("/api/v1/manifestations/{$manifestacao->id}")
             ->assertOk()

@@ -1,7 +1,8 @@
 # Ouvidoria Cidadã — Plano de Transformação em Sistema Profissional
 
 > Documento de planejamento. Objetivo: partir do protótipo `cabine_de_ouvidoria_inteligente.html`
-> (HTML único, Tailwind CDN, dados em memória, chave Gemini exposta no cliente) e chegar a um
+> (HTML único, Tailwind CDN, dados em memória, `apiKey` vazia injetada em runtime no navegador —
+> chamada de IA feita direto do cliente para o Google) e chegar a um
 > **sistema full-stack de produção** para operação em **totem/kiosk**, com **armazenamento local
 > offline-first + sincronização com banco remoto**, **proxy seguro de IA (Gemini)**, **painel
 > administrativo**, **relatórios/métricas**, **acompanhamento público por protocolo** e **notificações**.
@@ -21,7 +22,7 @@ Ler junto com:
 | Alcance | Full-stack completo (backend + banco + painel admin + auth + proxy de IA) |
 | Persistência | **Offline-first**: armazenamento local no totem **+ sincronização** com banco remoto |
 | Implantação | **Totem / Kiosk** (navegador em tela cheia em hardware dedicado) |
-| IA | Manter **Gemini**, mas com a **chave no backend** (proxy). Cliente nunca vê a chave |
+| IA | Manter **Gemini**, mas com a **chave no backend** (proxy). Hoje a chamada sai do navegador com `apiKey` injetada em runtime; em produção o cliente nunca deve ver a chave |
 | Gestão | Painel administrativo, Relatórios e métricas, Acompanhamento pelo cidadão, Notificações |
 
 ## 2. Decisões em aberto (resolver no início da próxima sessão)

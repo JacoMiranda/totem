@@ -45,7 +45,14 @@ class ManifestationController extends Controller
         $pagina = $query->paginate($request->integer('pageSize', 25));
 
         return response()->json([
-            'data' => $pagina->through(fn (Manifestation $m) => $this->resumo($m)),
+            // ->items() (não só ->through()) - through() muta e devolve o
+            // MESMO objeto paginador, que serializa como
+            // {current_page, data, first_page_url, ...} em vez de um array
+            // simples - o frontend (ManifestationsList.tsx) espera
+            // `data.data` como array puro pra mapear, não um paginador
+            // aninhado dentro de outro. Bug real: a tela quebrava (crash
+            // silencioso no .map()) assim que a lista tinha 0 ou mais itens.
+            'data' => $pagina->through(fn (Manifestation $m) => $this->resumo($m))->items(),
             'meta' => ['page' => $pagina->currentPage(), 'pageSize' => $pagina->perPage(), 'total' => $pagina->total()],
         ]);
     }
