@@ -118,10 +118,10 @@ function Board({ dados }: { dados: MuralDados }) {
             <h1 className="text-[3.2vmin] font-extrabold leading-tight">{dados.titulo}</h1>
           </div>
         </div>
-        <p className="text-right text-[1.5vmin] font-semibold leading-snug" style={{ color: t.cabecalhoSub }}>
+        <p className="text-right text-[2.2vmin] font-bold leading-snug" style={{ color: t.cabecalhoSub }}>
           A sua voz faz a diferença 💙
           <br />
-          <span className="text-[1.2vmin] font-normal">
+          <span className="text-[1.6vmin] font-normal">
             últimos {dados.janelaDias} dias · atualizado {tempoRelativo(dados.atualizadoEm)}
           </span>
         </p>
