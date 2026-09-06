@@ -135,6 +135,40 @@ Registro do que realmente aconteceu em cada atualização de produção — serv
 pra uma sessão nova não repetir passo já feito, nem se assustar com um aviso
 já conhecido.
 
+### 2026-09-06 (noite) — pacote completo `totem-2026-09-06-1022.zip`
+
+Deploy de **backend + frontend** (mexeu em rotas, `config/logging.php`,
+controllers). Não tem migração nova nesta rodada, mas config e rotas
+mudaram.
+
+No servidor, em `~/domains/prinatus.com.br/totem_app/`:
+```bash
+cp .env .env.backup-$(date +%F-%H%M)
+unzip -oq ~/totem-2026-09-06-1022.zip     # aviso de backslash: ignorar (ver nota)
+# .env NÃO precisa de variável nova nesta versão
+php artisan migrate --force               # nada a migrar, roda limpo
+php artisan config:clear && php artisan route:clear && php artisan view:clear
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+```
+Depois copiar `totem_app/public/build` -> `public_html/totem/build` (como
+nas rodadas anteriores).
+
+O que entrou:
+- **Microfone no celular**: ditado ao vivo só no desktop (no Android o mic
+  é exclusivo e SpeechRecognition brigava com a gravação); erro real na
+  tela em vez de "não consegui processar"; timeout de transcrição 45s.
+- **/admin/logs**: tela nova (menu Logs, só admin). Lê `laravel.log` +
+  `kiosk.log`. Canal `kiosk` novo em `config/logging.php` -> confirmar
+  que `storage/logs/` tem permissão de escrita (já tinha).
+- `POST /api/v1/client-errors` (device key): o totem reporta falhas de
+  microfone/áudio pra aparecerem em /admin/logs sem depender do cidadão.
+
+Verificar depois:
+```bash
+curl -s -o /dev/null -w "%{http_code}" https://totem.prinatus.com.br/api/v1/logs   # 401 (precisa de login) - NÃO 404
+```
+E no painel logado como admin: menu **Logs** deve carregar.
+
 ### 2026-09-06 (tarde) — só assets, `totem-assets-2026-09-06-1004.zip`
 
 Deploy de **frontend apenas** (`.\deploy.ps1 -SoAssets`) — nenhuma migração,
