@@ -17,6 +17,7 @@
 /public/build
 /public/hot
 /public/storage
+/public/models/vosk/*.tar.gz
 /storage/*.key
 /storage/pail
 /vendor

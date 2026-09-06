@@ -44,7 +44,7 @@ class AiController extends Controller
         if ($request->hasFile('file')) {
             $arquivo = $request->file('file');
             $base64Audio = base64_encode(file_get_contents($arquivo->getRealPath()));
-            $mimeType = $arquivo->getMimeType() ?: 'audio/webm';
+            $mimeType = $this->normalizarMime($arquivo->getMimeType(), $arquivo->getClientOriginalExtension());
 
             try {
                 $analise = $this->gemini->analisarAudio($base64Audio, $mimeType);
@@ -66,6 +66,24 @@ class AiController extends Controller
 
             return response()->json([...$degradado, 'transcription' => $validado['texto'], 'degraded' => true]);
         }
+    }
+
+    /**
+     * A Gemini só aceita alguns MIMEs de áudio (wav/mp3/ogg/flac/aac/aiff).
+     * O kiosk já manda WAV (ver audioParaWav.ts), mas o sniff do PHP às
+     * vezes devolve `audio/x-wav` / `video/webm` - normaliza pela extensão.
+     */
+    private function normalizarMime(?string $sniff, ?string $extensao): string
+    {
+        return match (strtolower((string) $extensao)) {
+            'wav' => 'audio/wav',
+            'mp3' => 'audio/mp3',
+            'ogg', 'opus' => 'audio/ogg',
+            'flac' => 'audio/flac',
+            'aac', 'm4a', 'mp4' => 'audio/aac',
+            'aiff', 'aif' => 'audio/aiff',
+            default => $sniff ?: 'audio/wav',
+        };
     }
 
     /** `{ texto }` → mesmo shape sem `transcription` - equivale a `triggerManualAnalysis`. */

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { SetupScreen } from './components/SetupScreen';
 import { getDeviceConfig } from './lib/deviceConfig';
+import { IA_LOCAL_APENAS } from './lib/ia';
+import { precarregarVosk } from './lib/offline/vosk';
 import { iniciarSincronizacaoEmSegundoPlano } from './lib/sync';
 import { useJourneyStore } from './store/journeyStore';
 import { Classificacao } from './steps/Classificacao';
@@ -20,6 +22,12 @@ function App() {
 
   useEffect(() => {
     if (!configurado) return undefined;
+
+    // Carrega o modelo de transcrição offline (Vosk, ~32 MB). Em modo
+    // IA_LOCAL_APENAS ele é o mecanismo principal, então carrega sempre;
+    // senão, só quando há conexão (pra cachear pro uso offline futuro).
+    // Silencioso: falhar aqui não afeta a jornada.
+    if (IA_LOCAL_APENAS || navigator.onLine) void precarregarVosk();
 
     return iniciarSincronizacaoEmSegundoPlano();
   }, [configurado]);
