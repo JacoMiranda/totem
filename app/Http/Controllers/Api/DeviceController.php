@@ -31,6 +31,62 @@ class DeviceController extends Controller
         ]));
     }
 
+    /**
+     * Lista enxuta pro seletor da tela de login do KIOSK (ver
+     * SetupScreen.tsx): o cliente entra com as credenciais dele e escolhe
+     * qual totem aquela máquina vai ser. Separado de index() porque a
+     * listagem do painel é admin-only e devolve mais campos - aqui basta o
+     * necessário pra desenhar os cartões, e o gate é atendente+.
+     */
+    public function pareaveis(): JsonResponse
+    {
+        Gate::authorize('parear-dispositivo');
+
+        return response()->json(
+            Device::orderBy('nome')->get()->map(fn (Device $d) => [
+                'id' => $d->id,
+                'codigo' => $d->codigo,
+                'nome' => $d->nome,
+                'unidade' => $d->unidade,
+                'ativo' => $d->ativo,
+                'ultimaSyncEm' => $d->ultima_sync_em?->toIso8601String(),
+            ])->values()
+        );
+    }
+
+    /**
+     * Pareia ESTA máquina com o dispositivo escolhido: emite uma chave
+     * nova e devolve em texto puro (única vez que ela existe fora do
+     * hash). Emitir em vez de "buscar" é obrigatório - só guardamos o
+     * hash da chave, ela não é recuperável.
+     *
+     * Efeito colateral proposital: a chave anterior deixa de valer. Um
+     * registro de dispositivo representa UM totem físico; se outra máquina
+     * parear no mesmo registro, a antiga é desconectada (e isso aparece em
+     * `ultima_sync_em` no painel).
+     */
+    public function pair(Device $device): JsonResponse
+    {
+        Gate::authorize('parear-dispositivo');
+
+        if (! $device->ativo) {
+            return response()->json([
+                'error' => ['code' => 'DEVICE_INATIVO', 'message' => 'Este totem está desativado. Fale com o administrador.'],
+            ], 422);
+        }
+
+        $chaveCrua = Str::random(48);
+        $device->update(['api_key_hash' => hash('sha256', $chaveCrua)]);
+
+        return response()->json([
+            'id' => $device->id,
+            'codigo' => $device->codigo,
+            'nome' => $device->nome,
+            'unidade' => $device->unidade,
+            'deviceKey' => $chaveCrua,
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         // Gate::authorize (nao $this->authorize) - o Controller base

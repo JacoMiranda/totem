@@ -40,6 +40,12 @@ class AppServiceProvider extends ServiceProvider
         // não faz parte da hierarquia "leitor+" (são ações de gestão da
         // operação, não de atendimento/análise de manifestação).
         Gate::define('gerenciar-dispositivos', fn (User $u) => $u->role === UserRole::Admin);
+
+        // Parear um totem (listar os dispositivos e pegar a chave de um
+        // deles na tela de login do kiosk) NÃO é gestão: é operação de
+        // chão, feita por quem instala/liga o totem. Por isso atendente+,
+        // e não admin - criar/desativar dispositivo continua admin-only.
+        Gate::define('parear-dispositivo', fn (User $u) => $u->temPapelMinimo(UserRole::Atendente));
         Gate::define('gerenciar-usuarios', fn (User $u) => $u->role === UserRole::Admin);
         Gate::define('gerenciar-notificacoes', fn (User $u) => $u->role === UserRole::Admin);
     }

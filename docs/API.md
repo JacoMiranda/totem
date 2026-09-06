@@ -93,6 +93,27 @@ Rate-limited. Retorna só o seguro:
 ```
 Erros genéricos (não revelar se o protocolo existe).
 
+## Pareamento do totem (tela de login do kiosk)
+
+A device key não é digitada por ninguém: o kiosk mostra uma tela de login, a
+pessoa entra com as credenciais da equipe, vê os totens e escolhe qual aquela
+máquina vai ser. Gate `parear-dispositivo` (**atendente+**, ao contrário do
+resto da gestão de dispositivos, que é admin). O token de equipe usado aqui
+vive só em memória e é descartado logo após o pareamento — um totem é máquina
+pública (ver `resources/js/kiosk/lib/pareamentoApi.ts`).
+
+### GET `/devices/pareaveis`  (bearer, atendente+)
+Lista enxuta para o seletor: `[{ id, codigo, nome, unidade, ativo, ultimaSyncEm }]`.
+
+### POST `/devices/{id}/pair`  (bearer, atendente+)
+**Emite** uma device key nova e a devolve em texto puro — só guardamos o hash,
+a chave não é recuperável. A chave anterior deixa de valer (um registro de
+dispositivo = um totem físico).
+```jsonc
+{ "id": "uuid", "codigo": "TOTEM-DEV-01", "nome": "Recepção I", "unidade": "Sede", "deviceKey": "…" }
+```
+`422 DEVICE_INATIVO` se o dispositivo estiver desativado.
+
 ## Dispositivos (admin)
 
 | GET | `/devices` | lista + `ultimaSyncEm`, `versaoApp`, pendências |
