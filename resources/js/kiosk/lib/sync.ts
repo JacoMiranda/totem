@@ -66,9 +66,18 @@ async function enviarItem(item: FilaManifestacao): Promise<void> {
 
     if (item.audioBlob && manifestacaoId) {
       const form = new FormData();
-      const extensao = (item.audioMimeType ?? 'audio/webm').includes('mp4') ? 'mp4' : 'webm';
+      const mime = item.audioMimeType ?? item.audioBlob.type ?? 'audio/webm';
+      const extensao = mime.includes('mp4') || mime.includes('mpeg') || mime.includes('aac')
+        ? 'mp4'
+        : mime.includes('ogg')
+          ? 'ogg'
+          : mime.includes('wav')
+            ? 'wav'
+            : 'webm';
       form.append('file', item.audioBlob, `gravacao.${extensao}`);
-      await api.post(`/manifestations/${manifestacaoId}/audio`, form);
+      // Upload de áudio (até ~25 MB) numa conexão de recepção pode passar
+      // do timeout curto de IA - dá folga própria.
+      await api.post(`/manifestations/${manifestacaoId}/audio`, form, { timeout: 90_000 });
     }
 
     await db.fila.update(item.clientId, { status: 'sincronizado', audioBlob: undefined });

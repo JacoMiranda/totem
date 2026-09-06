@@ -81,9 +81,14 @@ $staging = Join-Path $saida "staging-$carimbo"
 if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 
+# `storage/` NÃO entra: o servidor já tem a pasta com as subpastas certas,
+# e o `unzip -o` do deploy sobrescreveria logs, sessões e cache de produção
+# pelos do ambiente local (achado real: kiosk.log de prod veio cheio de
+# "testing.WARNING"). Uploads (áudio) ficam em storage/app/private — jamais
+# devem ser tocados por um deploy de código.
 $itens = @(
     'app', 'bootstrap', 'config', 'database', 'public', 'resources', 'routes',
-    'storage', 'vendor', 'artisan', 'composer.json', 'composer.lock', '.env.example'
+    'vendor', 'artisan', 'composer.json', 'composer.lock', '.env.example'
 ) | Where-Object { Test-Path $_ }
 
 Write-Host 'Preparando os arquivos...' -ForegroundColor Cyan

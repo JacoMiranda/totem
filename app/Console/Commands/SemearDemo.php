@@ -109,13 +109,13 @@ class SemearDemo extends Command
 
         $org = Organizacao::firstWhere('slug', self::SLUG);
 
+        // `--fresh` só zera as MANIFESTAÇÕES. A organização, os totens e a
+        // equipe são preservados (updateOrCreate abaixo) - senão o UUID da
+        // org e as linhas de device mudam a cada reseed e qualquer totem já
+        // pareado (que guarda a device key) passa a apontar pra org antiga.
         if ($org && $this->option('fresh')) {
-            $this->line('Apagando a empresa-demo anterior...');
+            $this->line('Zerando as manifestações da empresa-demo...');
             Manifestation::withoutGlobalScopes()->where('organizacao_id', $org->id)->delete();
-            User::where('organizacao_id', $org->id)->delete();
-            Device::withoutGlobalScopes()->where('organizacao_id', $org->id)->delete();
-            $org->delete();
-            $org = null;
         }
 
         $org = $org ?? new Organizacao(['slug' => self::SLUG]);

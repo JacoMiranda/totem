@@ -123,12 +123,22 @@ class ManifestationController extends Controller
     /** multipart/form-data, campo `file` - docs/API.md. */
     public function uploadAudio(Request $request, Manifestation $manifestation): JsonResponse
     {
+        // NÃO usar `mimetypes:` aqui: um webm/ogg só-áudio é frequentemente
+        // detectado pelo libmagic como `video/webm` / `application/octet-stream`
+        // (achado real: nenhum áudio chegava em produção, upload dava 422). O
+        // arquivo vem do PRÓPRIO totem, já autenticado por device key -
+        // validar extensão + tamanho é suficiente.
         $request->validate([
-            'file' => ['required', 'file', 'max:25600', 'mimetypes:audio/webm,audio/ogg,audio/mpeg,audio/mp4,audio/wav'],
+            'file' => ['required', 'file', 'max:25600'],
             'duracaoSeg' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $arquivo = $request->file('file');
+        abort_unless(
+            in_array(strtolower((string) $arquivo->getClientOriginalExtension()), ['webm', 'ogg', 'mp4', 'm4a', 'mp3', 'wav', 'aac'], true),
+            422,
+            'Formato de áudio não suportado.',
+        );
         // getClientOriginalExtension() (nao extension()) - extension()
         // deriva do MIME type via Symfony MimeTypes, que nao tem mapeamento
         // confiavel pra "audio/webm" (MIME menos comum), retornando

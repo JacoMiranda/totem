@@ -174,21 +174,21 @@ export default function App() {
           O totem (ou a cabine, para mais privacidade) na entrada, e uma TV com o painel de transparência à
           vista de todos.
         </p>
-        <div className="mt-12 grid md:grid-cols-2 gap-6">
-          <figure className="rounded-3xl overflow-hidden border border-slate-200 shadow-lg shadow-slate-900/5">
-            <img
-              src="/midia/recepcao-totem.png"
-              alt="Totem de ouvidoria na recepção, com o painel de transparência numa TV ao fundo"
-              loading="lazy"
-              className="w-full h-full object-cover"
-            />
-          </figure>
-          <figure className="rounded-3xl overflow-hidden border border-slate-200 shadow-lg shadow-slate-900/5">
+        <div className="mt-12 flex flex-col items-center gap-8">
+          <figure className="w-full max-w-3xl rounded-3xl overflow-hidden border border-slate-200 shadow-lg shadow-slate-900/5">
             <img
               src="/midia/recepcao-cabine.png"
               alt="Cabine de manifestação fechada para mais privacidade, e a recepção acompanhando os indicadores"
               loading="lazy"
-              className="w-full h-full object-cover"
+              className="block w-full h-auto"
+            />
+          </figure>
+          <figure className="w-full max-w-md rounded-3xl overflow-hidden border border-slate-200 shadow-lg shadow-slate-900/5">
+            <img
+              src="/midia/recepcao-totem.png"
+              alt="Totem de ouvidoria na recepção, com o painel de transparência numa TV ao fundo"
+              loading="lazy"
+              className="block w-full h-auto"
             />
           </figure>
         </div>

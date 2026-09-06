@@ -90,9 +90,11 @@ export function Relato() {
       try {
         const form = new FormData();
         form.append('file', wav.blob, wav.nomeArquivo);
-        // Áudio pode levar mais que uma chamada de texto: transcrição +
-        // classificação + rede móvel. Timeout próprio, maior que o padrão.
-        const { data } = await api.post('/ai/transcribe-analyze', form, { timeout: 45_000 });
+        // 28s: tempo suficiente pra Gemini responder quando ela está rápida,
+        // mas sem prender o cidadão - passou disso, cai pro Vosk (offline) ou
+        // pro "enviar sem escrever". Em produção (Hostinger -> Google) a
+        // chamada às vezes estoura 40s+.
+        const { data } = await api.post('/ai/transcribe-analyze', form, { timeout: 28_000 });
         aplicarAnalise(data);
 
         return true;
