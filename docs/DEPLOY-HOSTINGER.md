@@ -136,6 +136,31 @@ Registro do que realmente aconteceu em cada atualização de produção — serv
 pra uma sessão nova não repetir passo já feito, nem se assustar com um aviso
 já conhecido.
 
+### 2026-09-07 (noite) — áudio não chegava + Vosk ligado
+
+Bug: 3 manifestações em produção, **0 arquivos de áudio**. Causa: a regra
+`mimetypes:audio/webm,...` do `uploadAudio` — o libmagic classifica um
+webm/ogg só-áudio como `video/webm`, dava 422. Trocado por validação de
+extensão + tamanho.
+
+Também: `sync.ts` com timeout de 90 s no upload; transcrição Gemini com
+timeout 45 s → 28 s (Hostinger→Google estoura, cai mais rápido pro
+fallback); `VITE_KIOSK_VOSK=true` no build (transcrição offline); modelo
+Vosk (32 MB) já estava no servidor, copiado pra `public_html/totem/models/vosk/`.
+
+`deploy.ps1` parou de empacotar `storage/` — o `unzip -o` sobrescrevia
+logs/sessões de produção com os do ambiente local (kiosk.log de prod
+estava cheio de `testing.WARNING`). `storage/logs/kiosk.log` de prod
+limpo.
+
+`ouvidoria:semear-demo --fresh` agora só zera manifestações — org, totens
+e equipe preservados (o UUID da org mudava a cada reseed e desapontava
+totens já pareados).
+
+Deploy: `scp` do `ManifestationController.php` + `public/build` novo +
+caches. Verificado: upload de `.wav` e de `.webm` (`video/webm`) → 200
+`{"ok":true}`; modelo Vosk servido (200, 32 MB).
+
 ### 2026-09-07 — equipe + home com vídeo + redesign do mural + ajuda
 
 Pacote `totem-2026-09-06-1728.zip` (59 MB — cresceu por causa de

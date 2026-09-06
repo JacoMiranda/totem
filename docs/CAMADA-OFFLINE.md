@@ -16,6 +16,16 @@ Em qualquer caso a manifestação **nunca se perde**: o áudio vai pra
 IndexedDB antes de qualquer rede e é reprocessado pelo servidor quando
 sincroniza (ver `sync.ts`).
 
+### Upload do áudio (`POST /manifestations/{id}/audio`)
+
+- **Sem `mimetypes:`** na validação. Um webm/ogg só-áudio é detectado pelo
+  libmagic como `video/webm` / `application/octet-stream` — a regra
+  `mimetypes:audio/*` rejeitava (422) e **nenhum áudio chegava em
+  produção**. Valida extensão (`webm|ogg|mp4|m4a|mp3|wav|aac`) + tamanho
+  (25 MB); o arquivo vem do próprio totem, já autenticado por device key.
+- `sync.ts` usa timeout de 90 s no upload (o de 20 s da IA estourava numa
+  conexão de recepção) e manda a extensão certa pra ogg/wav.
+
 ### Sincronização (`sync.ts`) — o que garante que "chegou"
 
 - `enviarItem` **persiste protocolo/PIN na fila local assim que a
