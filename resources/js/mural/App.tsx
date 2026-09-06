@@ -104,6 +104,7 @@ function Board({ dados }: { dados: MuralDados }) {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden" style={{ ...vars, background: 'var(--bg)', color: 'var(--ink)' }}>
+      <LinkPainel />
       {/* cabeçalho */}
       <header
         className="flex shrink-0 items-center justify-between gap-4 px-[4vmin] py-[2vmin]"
@@ -170,7 +171,7 @@ function Board({ dados }: { dados: MuralDados }) {
         </div>
       </div>
 
-      <Convite bg={t.conviteBg} borda={t.conviteBorda} />
+      <Convite bg={t.conviteBg} borda={t.conviteBorda} orientacao={dados.orientacao} />
     </div>
   );
 }
@@ -383,18 +384,72 @@ function Esteira({ elogios, escuro }: { elogios: MuralDados['elogios']; escuro: 
   );
 }
 
-function Convite({ bg, borda }: { bg: string; borda: string }) {
+const COR_LINHA: Record<string, string> = {
+  amarela: '#facc15', azul: '#3b82f6', verde: '#22c55e', vermelha: '#ef4444',
+  laranja: '#f97316', roxa: '#a855f7', rosa: '#ec4899', cinza: '#94a3b8',
+  branca: '#e5e7eb', preta: '#111827', marrom: '#a16207',
+};
+
+function Convite({
+  bg,
+  borda,
+  orientacao,
+}: {
+  bg: string;
+  borda: string;
+  orientacao: MuralDados['orientacao'];
+}) {
+  const local = orientacao.local?.trim();
+  const corNome = orientacao.linhaCor?.trim().toLowerCase();
+  const corLinha = corNome ? (corNome.startsWith('#') ? corNome : COR_LINHA[corNome] ?? '#3b82f6') : null;
+
   return (
-    <div className="flex shrink-0 items-center gap-[3vmin] border-t px-[4vmin] py-[1.8vmin]" style={{ background: bg, borderColor: borda }}>
+    <div
+      className="flex shrink-0 items-center gap-[3vmin] border-t px-[4vmin] py-[1.8vmin]"
+      style={{ background: bg, borderColor: borda }}
+    >
       <Mascote />
-      <div>
+      <div className="min-w-0">
         <p className="text-[2.8vmin] font-extrabold leading-tight">A sua opinião muda este lugar</p>
         <p className="text-[1.9vmin]" style={{ color: 'var(--muted)' }}>
-          Use o totem aqui na recepção e registre a sua manifestação — leva menos de 1 minuto, é só falar.
+          {local ? (
+            <>
+              Faça a sua manifestação no totem — fica <b style={{ color: 'var(--ink)' }}>{local}</b>. Leva menos de 1
+              minuto, é só falar.
+            </>
+          ) : (
+            <>Use o totem aqui nesta sala e registre a sua manifestação — leva menos de 1 minuto, é só falar.</>
+          )}
         </p>
       </div>
-      <span className="ml-auto shrink-0 animate-[balanca_2.5s_ease-in-out_infinite] text-[4.5vmin]">👉</span>
-      <style>{`@keyframes balanca{0%,100%{transform:translateX(0)}50%{transform:translateX(1vmin)}}`}</style>
+
+      <div className="ml-auto flex shrink-0 items-center gap-[2vmin]">
+        {corLinha && corNome && (
+          <span
+            className="flex items-center gap-[1.2vmin] rounded-full px-[2.4vmin] py-[1.2vmin] text-[2vmin] font-extrabold"
+            style={{ background: `${corLinha}22`, color: 'var(--ink)' }}
+          >
+            <span
+              className="animate-[fluxo_1.2s_linear_infinite] rounded-full"
+              style={{
+                width: '7vmin',
+                height: '0.9vmin',
+                backgroundImage: `repeating-linear-gradient(90deg, ${corLinha} 0 1.6vmin, transparent 1.6vmin 2.8vmin)`,
+                backgroundSize: '2.8vmin 100%',
+              }}
+            />
+            Siga a linha {corNome}
+          </span>
+        )}
+        {!corLinha && (
+          <span className="animate-[balanca_2.5s_ease-in-out_infinite] text-[4.5vmin]">👉</span>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes balanca{0%,100%{transform:translateX(0)}50%{transform:translateX(1vmin)}}
+        @keyframes fluxo{from{background-position:0 0}to{background-position:2.8vmin 0}}
+      `}</style>
     </div>
   );
 }
@@ -415,6 +470,25 @@ function Mascote() {
 
 function Aviso({ children }: { children: React.ReactNode }) {
   return <div className="flex h-screen items-center justify-center bg-[#eef4fb] text-[3vmin] text-slate-500">{children}</div>;
+}
+
+/**
+ * Atalho discreto pro painel. Numa TV de parede (sem mouse) fica quase
+ * invisível no canto; quem está revisando num computador passa o mouse e
+ * ele acende. O totem NÃO tem nada disso - lá o acesso é só pelo painel de
+ * suporte com PIN.
+ */
+function LinkPainel() {
+  return (
+    <a
+      href="/admin"
+      className="fixed right-3 top-3 z-50 rounded-lg px-3 py-1.5 text-xs font-bold opacity-10 transition-opacity hover:opacity-100"
+      style={{ background: 'rgba(120,130,150,0.25)', color: 'inherit' }}
+      title="Ir para o painel administrativo"
+    >
+      ⚙ painel
+    </a>
+  );
 }
 
 /* ---------------------------------------------------------------- helpers */

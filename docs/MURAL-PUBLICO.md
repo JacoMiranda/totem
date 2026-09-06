@@ -46,6 +46,17 @@ dados iguais. Coluna `mural_tema` em `organizacoes`. O dashboard trava na
 altura do monitor (`h-screen` + `overflow-hidden`) — cabe numa tela só,
 sem rolagem.
 
+O **rodapé** convida a usar o totem e serve de guia de deslocamento:
+`mural_totem_local` (ex.: "Recepção do 2º andar") e `mural_linha_cor`
+(ex.: "amarela"). Vazios = "use o totem aqui nesta sala". Com linha, o
+rodapé mostra "Siga a linha amarela" com a cor e um traço animado. Tudo
+editável em `/admin/mural`.
+
+Um atalho `⚙ painel` fica no canto superior direito, quase invisível
+(opacidade 10%), acende no hover — pra quem revisa num computador chegar
+ao `/admin`. Numa TV de parede (sem mouse) ninguém repara. O **totem não
+tem** nada disso: lá o acesso é só pelo painel de suporte com PIN.
+
 ## Acesso
 
 **Opt-in.** Desligado por padrão. O admin da conta liga em

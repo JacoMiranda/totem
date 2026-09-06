@@ -56,6 +56,10 @@ class MuralService
         return [
             'titulo' => $org->muralTitulo(),
             'tema' => in_array($org->mural_tema, ['claro', 'escuro'], true) ? $org->mural_tema : 'claro',
+            'orientacao' => [
+                'local' => $org->mural_totem_local ?: null,
+                'linhaCor' => $org->mural_linha_cor ?: null,
+            ],
             'atualizadoEm' => now()->toIso8601String(),
             'janelaDias' => self::JANELA_DIAS,
             'amostraPequena' => $total < self::MIN_AMOSTRA,

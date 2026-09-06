@@ -1,6 +1,7 @@
 export interface MuralDados {
   titulo: string;
   tema: 'claro' | 'escuro';
+  orientacao: { local: string | null; linhaCor: string | null };
   atualizadoEm: string;
   janelaDias: number;
   amostraPequena: boolean;

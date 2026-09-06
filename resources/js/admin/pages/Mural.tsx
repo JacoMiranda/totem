@@ -11,13 +11,18 @@ interface Config {
   titulo: string | null;
   tituloEfetivo: string;
   tema: 'claro' | 'escuro';
+  totemLocal: string | null;
+  linhaCor: string | null;
   token: string | null;
   url: string | null;
 }
 
+const CORES_LINHA = ['', 'amarela', 'azul', 'verde', 'vermelha', 'laranja', 'roxa', 'rosa', 'cinza'];
+
 export function Mural() {
   const [cfg, setCfg] = useState<Config | null>(null);
   const [titulo, setTitulo] = useState('');
+  const [local, setLocal] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [copiado, setCopiado] = useState(false);
@@ -28,6 +33,7 @@ export function Mural() {
       .then(({ data }) => {
         setCfg(data);
         setTitulo(data.titulo ?? '');
+        setLocal(data.totemLocal ?? '');
       })
       .catch(() => setErro('Não foi possível carregar a configuração do mural.'));
 
@@ -35,14 +41,16 @@ export function Mural() {
     void carregar();
   }, []);
 
-  const salvar = async (patch: { ativo?: boolean; tema?: 'claro' | 'escuro' }) => {
+  const salvar = async (patch: { ativo?: boolean; tema?: 'claro' | 'escuro'; linhaCor?: string }) => {
     setSalvando(true);
     setErro(null);
     try {
       const { data } = await api.patch('/mural', {
         ativo: patch.ativo ?? cfg?.ativo ?? false,
         titulo: titulo.trim() || null,
+        totemLocal: local.trim() || null,
         ...(patch.tema ? { tema: patch.tema } : {}),
+        ...(patch.linhaCor !== undefined ? { linhaCor: patch.linhaCor || null } : {}),
       });
       setCfg(data);
     } catch {
@@ -135,6 +143,38 @@ export function Mural() {
           ))}
         </div>
         <span className="text-[11px] text-slate-400">Escuro combina com TVs em ambiente com pouca luz.</span>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 flex flex-col gap-3">
+        <span className="text-xs font-bold uppercase text-slate-500">Como chegar ao totem (rodapé do mural)</span>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">Onde fica o totem</span>
+          <input
+            value={local}
+            onChange={(e) => setLocal(e.target.value)}
+            onBlur={() => salvar({})}
+            placeholder="Ex.: Recepção do 2º andar — em branco = nesta mesma sala"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">Linha colorida no chão (se a instituição usa)</span>
+          <select
+            value={cfg.linhaCor ?? ''}
+            onChange={(e) => salvar({ linhaCor: e.target.value })}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm capitalize"
+          >
+            {CORES_LINHA.map((c) => (
+              <option key={c} value={c}>
+                {c === '' ? 'nenhuma' : `linha ${c}`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-[11px] text-slate-400">
+          Com linha: o rodapé mostra “Siga a linha {cfg.linhaCor || 'amarela'}” com a cor. Sem local nem linha: “use
+          o totem aqui nesta sala”.
+        </p>
       </div>
 
       {cfg.url && (
