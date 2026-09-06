@@ -60,3 +60,33 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token: null, user: null });
   },
 }));
+
+/**
+ * Mantém a sessão em sincronia com o localStorage:
+ *
+ *  - `storage`: outra aba fez logout (removeu a chave) -> esta aba também sai.
+ *  - `pageshow` com `persisted`: a página voltou do bfcache do navegador
+ *    (seta voltar/avançar) com o estado JS congelado. Se o localStorage já
+ *    não tem sessão, o token em memória está obsoleto - limpa e o
+ *    ProtectedRoute manda pro login.
+ *  - `visibilitychange`: a aba ficou visível de novo depois de um logout
+ *    em outra aba, sem navegação nenhuma.
+ */
+if (typeof window !== 'undefined') {
+  const revalidar = () => {
+    const persistida = lerSessaoPersistida();
+    if (!persistida.token && useAuthStore.getState().token) {
+      useAuthStore.setState({ token: null, user: null });
+    }
+  };
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) revalidar();
+  });
+  window.addEventListener('pageshow', (e) => {
+    if ((e as PageTransitionEvent).persisted) revalidar();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') revalidar();
+  });
+}
