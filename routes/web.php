@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Route;
 // Laravel só precisa servir a página-shell na entrada.
 // Sem página "welcome" padrão do Laravel aqui - não faz parte da UX real
 // do Totem (o totem físico abre direto em /atendimento em modo kiosk).
-Route::redirect('/', '/atendimento');
+// Home de marketing + cadastro self-service. O totem FÍSICO abre direto
+// em /atendimento (modo quiosque), então mudar a raiz não o afeta.
+Route::get('/', fn () => view('site'))->name('site');
 
 Route::get('/atendimento/{any?}', function () {
     return view('kiosk');

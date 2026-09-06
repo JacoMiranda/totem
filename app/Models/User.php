@@ -7,12 +7,13 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'role', 'unidade', 'ativo'])]
+#[Fillable(['organizacao_id', 'name', 'email', 'password', 'role', 'unidade', 'ativo'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -34,6 +35,17 @@ class User extends Authenticatable
     public function temPapelMinimo(UserRole $minimo): bool
     {
         return $this->role->atende($minimo);
+    }
+
+    public function organizacao(): BelongsTo
+    {
+        return $this->belongsTo(Organizacao::class);
+    }
+
+    /** Equipe da PLATAFORMA (nós) - sem organização, enxerga todas as contas. */
+    public function daPlataforma(): bool
+    {
+        return $this->organizacao_id === null;
     }
 
     public function notificationPrefs(): HasMany

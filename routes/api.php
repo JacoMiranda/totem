@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ManifestationController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPrefController;
 use App\Http\Controllers\Api\PublicManifestationController;
+use App\Http\Controllers\Api\RegistroController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RequerenteController;
 use Illuminate\Http\Request;
@@ -23,6 +24,11 @@ Route::prefix('v1')->group(function () {
     // Health (docs/API.md) - sem auth, usado na Fase 9 pra validar deploy.
     Route::get('/health', [HealthController::class, 'health']);
     Route::get('/health/devices', [HealthController::class, 'devices'])->middleware('auth:sanctum');
+
+    // Cadastro self-service a partir da home (sem auth). Throttle apertado:
+    // cria organização + usuário + totens, é alvo óbvio de abuso.
+    Route::get('/planos', [RegistroController::class, 'planos']);
+    Route::post('/auth/register', [RegistroController::class, 'registrar'])->middleware('throttle:10,60');
 
     // Auth da equipe (Sanctum bearer, não cookie/refresh - ver AuthController).
     Route::prefix('auth')->group(function () {
@@ -68,6 +74,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/manifestations/{manifestation}/resposta', [AdminManifestationController::class, 'resposta'])->whereUuid('manifestation');
 
         // Dispositivos (admin) - nunca via device.key (um totem não se auto-cadastra).
+        // Pareamento pelo próprio kiosk (tela de login do totem): listar +
+        // pegar a chave de um dispositivo. Gate atendente+, ao contrário do
+        // resto da gestão de dispositivos (admin). `pareaveis` vem ANTES de
+        // qualquer /devices/{...} pra não ser capturada como parâmetro.
+        Route::get('/devices/pareaveis', [DeviceController::class, 'pareaveis']);
+        Route::post('/devices/{device}/pair', [DeviceController::class, 'pair'])->whereUuid('device');
+
         Route::get('/devices', [DeviceController::class, 'index']);
         Route::post('/devices', [DeviceController::class, 'store']);
         Route::post('/devices/{device}/rotate-key', [DeviceController::class, 'rotateKey'])->whereUuid('device');

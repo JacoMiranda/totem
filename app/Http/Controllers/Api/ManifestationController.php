@@ -55,6 +55,10 @@ class ManifestationController extends Controller
             'status' => 'Recebida',
             'canal' => 'Totem',
             'device_id' => $device->id,
+            // A manifestação herda a organização DO DEVICE - a requisição do
+            // totem não tem usuário logado, então o vínculo com a conta do
+            // cliente vem daqui (ver App\Models\Scopes\PorOrganizacao).
+            'organizacao_id' => $device->organizacao_id,
             'requerente_type' => $request->validated('requerenteType'),
             'requerente_id' => $request->validated('requerenteId'),
             'origem_ip' => $request->ip(),

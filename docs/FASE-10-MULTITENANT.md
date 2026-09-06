@@ -1,7 +1,7 @@
 # Fase 10 — Multi-tenant / Portal do cliente
 
-> **Status: planejada, não iniciada.** Decisões tomadas com o cliente em 2026-08-28.
-> Só começar depois da camada offline (Vosk). Mexe em quase toda query do painel.
+> **Fundação implementada em 2026-09-05.** Veja a seção "Status" para o que
+> já existe e o que falta.
 
 ## Decisões
 
@@ -11,6 +11,39 @@
 | Pareamento do totem | **Todas as formas**, sem nunca digitar a chave de 48 chars: (a) abrir pelo portal (token de sessão), (b) código de 6 dígitos, (c) **QR code** — a pessoa aponta a câmera do celular, cai numa URL que ativa o login/pareamento. |
 | Acessibilidade / offline no pareamento | Ver seção "Boas práticas" abaixo — pesquisar e aplicar. |
 | Estrutura web | **Portal do cliente + back-office separado.** O painel admin atual (Fase 4) vira o Portal do Cliente (com escopo de organização). Back-office novo e enxuto para a equipe da plataforma gerir organizações/pacotes/suporte. |
+
+## Status
+
+### Feito
+
+- **Pareamento pelo kiosk** — `SetupScreen.tsx` + `pareamentoApi.ts` +
+  `GET /devices/pareaveis` + `POST /devices/{id}/pair` (gate
+  `parear-dispositivo`, atendente+). Substituiu a digitação manual da key.
+- **Organizações (tenants)** — tabelas `organizacoes` e `planos`;
+  `organizacao_id` em `users`, `devices` e `manifestations`. A migração cria a
+  "Organização Padrão" e adota o que já existia.
+- **Escopo por organização** — `App\Models\Scopes\PorOrganizacao` (global scope
+  em `Device` e `Manifestation`). Usuário sem organização = equipe da
+  plataforma e enxerga tudo. Coberto por `CadastroMultiTenantTest`.
+- **Cadastro self-service** — `POST /auth/register` cria organização + primeiro
+  usuário + provisiona os totens do pacote. `GET /planos` é o catálogo público.
+- **Nomeação automática** — `App\Services\NomeadorDeTotens`: "Luiza Brok" + 3
+  totens => `LuizaBrok-01`, `-02`, `-03`; com local => `LuizaBrok-01-Recepcao`.
+  `codigo` é ASCII (vai pra URL/log/CSV), `nome`/`unidade` preservam o acento.
+  Espelho client-side em `resources/js/shared/nomeTotem.ts` (só pré-visualização).
+- **Home de marketing** — `resources/js/site/` na raiz `/`: hero, como funciona,
+  benefícios, planos vindos da API e formulário de cadastro com pré-visualização
+  dos nomes dos totens. Handoff de sessão pro painel via `totem:admin-session`.
+
+### Falta
+
+- Back-office da plataforma (gerir organizações/pacotes/suporte).
+- Pareamento por **código de 6 dígitos** e por **QR code**.
+- Papéis separados: plataforma (`super-admin`/`suporte`) vs cliente
+  (`gestor`/`operador`) — hoje ambos usam a mesma hierarquia `UserRole`.
+- Preços/cobrança (planos estão com `preco_centavos` nulo = "sob consulta").
+- Verificação de e-mail no cadastro; expurgo de contas trial vencidas.
+- Cota de IA por organização (um cliente não pode estourar a cota de todos).
 
 ## Modelo de dados (novo)
 

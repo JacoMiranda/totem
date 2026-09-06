@@ -7,8 +7,10 @@ use App\Enums\Channel;
 use App\Enums\ManifestationStatus;
 use App\Enums\Sentiment;
 use App\Enums\Urgency;
+use App\Models\Scopes\PorOrganizacao;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,13 +18,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 #[Fillable([
-    'protocolo', 'client_id', 'pin_acompanhamento', 'canal', 'device_id',
+    'organizacao_id', 'protocolo', 'client_id', 'pin_acompanhamento', 'canal', 'device_id',
     'requerente_type', 'requerente_id', 'transcricao', 'resumo', 'keywords',
     'sentimento', 'categoria', 'urgencia', 'status', 'responsavel_id',
     'resposta_oficial', 'resposta_publicada_em', 'audio_object_key', 'audio_mime',
     'audio_duracao_seg', 'consentimento_lgpd', 'origem_ip', 'criado_em', 'anonimizado_em',
 ])]
 #[Hidden(['pin_acompanhamento'])]
+#[ScopedBy(PorOrganizacao::class)]
 class Manifestation extends Model
 {
     use HasUuids;
