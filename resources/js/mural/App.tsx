@@ -410,16 +410,24 @@ function Convite({
     >
       <Mascote />
       <div className="min-w-0">
-        <p className="text-[2.8vmin] font-extrabold leading-tight">A sua opinião muda este lugar</p>
-        <p className="text-[1.9vmin]" style={{ color: 'var(--muted)' }}>
+        <p className="text-[3vmin] font-extrabold leading-tight">
+          A sua opinião muda este lugar —{' '}
           {local ? (
             <>
-              Faça a sua manifestação no totem — fica <b style={{ color: 'var(--ink)' }}>{local}</b>. Leva menos de 1
-              minuto, é só falar.
+              o totem fica{' '}
+              <span
+                className="rounded-lg px-[1.4vmin] py-[0.3vmin]"
+                style={{ background: 'rgba(59,130,246,0.16)', color: AZUL }}
+              >
+                {local}
+              </span>
             </>
           ) : (
-            <>Use o totem aqui nesta sala e registre a sua manifestação — leva menos de 1 minuto, é só falar.</>
+            <span style={{ color: AZUL }}>use o totem aqui nesta sala</span>
           )}
+        </p>
+        <p className="mt-[0.6vmin] text-[2.1vmin] font-semibold" style={{ color: 'var(--muted)' }}>
+          É só falar — leva menos de 1 minuto.
         </p>
       </div>
 
