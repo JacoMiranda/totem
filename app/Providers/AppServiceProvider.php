@@ -49,5 +49,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('gerenciar-usuarios', fn (User $u) => $u->role === UserRole::Admin);
         Gate::define('gerenciar-notificacoes', fn (User $u) => $u->role === UserRole::Admin);
         Gate::define('ver-logs', fn (User $u) => $u->role === UserRole::Admin);
+        Gate::define('gerenciar-mural', fn (User $u) => $u->role === UserRole::Admin);
     }
 }

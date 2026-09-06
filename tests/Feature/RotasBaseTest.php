@@ -25,4 +25,9 @@ class RotasBaseTest extends TestCase
     {
         $this->get('/admin')->assertOk()->assertSee('root', false);
     }
+
+    public function test_mural_carrega(): void
+    {
+        $this->get('/mural/qualquercoisa')->assertOk()->assertSee('root', false);
+    }
 }

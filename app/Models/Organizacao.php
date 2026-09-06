@@ -14,7 +14,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * "Luiza Brok" vira "LuizaBrok", que gera LuizaBrok-01, LuizaBrok-02...
  * (ver App\Services\NomeadorDeTotens).
  */
-#[Fillable(['nome', 'slug', 'documento', 'plano_id', 'status', 'trial_expira_em'])]
+#[Fillable([
+    'nome', 'slug', 'documento', 'plano_id', 'status', 'trial_expira_em',
+    'mural_ativo', 'mural_token', 'mural_titulo',
+])]
 class Organizacao extends Model
 {
     use HasUuids;
@@ -26,7 +29,14 @@ class Organizacao extends Model
         return [
             'status' => OrganizacaoStatus::class,
             'trial_expira_em' => 'datetime',
+            'mural_ativo' => 'boolean',
         ];
+    }
+
+    /** Título do mural público, com fallback pro nome da conta. */
+    public function muralTitulo(): string
+    {
+        return $this->mural_titulo ?: 'Ouvidoria · '.$this->nome;
     }
 
     public function plano(): BelongsTo

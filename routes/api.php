@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ClientErrorController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Api\ManifestationController;
+use App\Http\Controllers\Api\MuralController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPrefController;
 use App\Http\Controllers\Api\PublicManifestationController;
@@ -106,6 +107,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/notifications/test', [NotificationController::class, 'test']);
         Route::get('/notification-prefs', [NotificationPrefController::class, 'index']);
         Route::put('/notification-prefs', [NotificationPrefController::class, 'update']);
+
+        // Mural público de transparência - ligar/desligar e pegar o link (admin da conta).
+        Route::get('/mural', [MuralController::class, 'config']);
+        Route::patch('/mural', [MuralController::class, 'atualizar']);
+        Route::post('/mural/token', [MuralController::class, 'regenerarToken']);
     });
 
     // Consulta pública (sem auth) - rate-limited contra enumeração de
@@ -116,5 +122,8 @@ Route::prefix('v1')->group(function () {
         // LGPD (Fase 8) - eliminação/anonimização a pedido do próprio
         // cidadão, mesma verificação protocolo+PIN, mesmo throttle.
         Route::delete('/public/manifestations/{protocolo}', [PublicManifestationController::class, 'eliminar']);
+
+        // Mural público de transparência (a tela da recepção puxa isto sozinha).
+        Route::get('/mural/{token}', [MuralController::class, 'show'])->where('token', '[a-z0-9]{10,64}');
     });
 });

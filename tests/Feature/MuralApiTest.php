@@ -1,0 +1,148 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\OrganizacaoStatus;
+use App\Enums\UserRole;
+use App\Models\Device;
+use App\Models\Manifestation;
+use App\Models\Organizacao;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+
+/** Mural público de transparência (docs/MURAL-PUBLICO.md). */
+class MuralApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function org(array $attrs = []): Organizacao
+    {
+        return Organizacao::create(array_merge([
+            'nome' => 'Empresa X',
+            'slug' => 'EmpresaX'.Str::random(4),
+            'status' => OrganizacaoStatus::Ativa,
+        ], $attrs));
+    }
+
+    private function manifestacao(Organizacao $org, array $attrs = []): Manifestation
+    {
+        $device = Device::withoutGlobalScopes()->create([
+            'organizacao_id' => $org->id,
+            'codigo' => 'T-'.Str::random(6),
+            'nome' => 'Totem',
+            'unidade' => 'Recepção',
+            'api_key_hash' => hash('sha256', Str::random(10)),
+            'ativo' => true,
+        ]);
+
+        return Manifestation::withoutGlobalScopes()->create(array_merge([
+            'organizacao_id' => $org->id,
+            'protocolo' => 'OUV-'.now()->format('Ym').'-'.random_int(100000, 999999),
+            'client_id' => (string) Str::uuid(),
+            'pin_acompanhamento' => hash('sha256', '1234'),
+            'canal' => 'Totem',
+            'device_id' => $device->id,
+            'categoria' => 'Reclamação',
+            'sentimento' => 'Insatisfeito',
+            'urgencia' => 'Média',
+            'status' => 'Concluída',
+            'consentimento_lgpd' => true,
+            'criado_em' => now()->subDays(10),
+            'resposta_publicada_em' => now()->subDays(8),
+            'atualizado_em' => now()->subDays(7),
+        ], $attrs));
+    }
+
+    public function test_mural_desativado_ou_inexistente_da_404(): void
+    {
+        $this->getJson('/api/v1/mural/naoexisteesse')->assertNotFound();
+
+        $org = $this->org(['mural_ativo' => false, 'mural_token' => 'tokendesativado1']);
+        $this->getJson('/api/v1/mural/tokendesativado1')->assertNotFound();
+    }
+
+    public function test_mural_ativo_devolve_indicadores(): void
+    {
+        $org = $this->org(['mural_ativo' => true, 'mural_token' => 'tokenpublicoaqui1', 'mural_titulo' => 'Ouvidoria X']);
+        $this->manifestacao($org);
+        $this->manifestacao($org, ['categoria' => 'Elogio', 'sentimento' => 'Excelente', 'resumo' => 'Ótimo atendimento no caixa.']);
+
+        $r = $this->getJson('/api/v1/mural/tokenpublicoaqui1');
+
+        $r->assertOk();
+        $r->assertJsonPath('titulo', 'Ouvidoria X');
+        $r->assertJsonStructure([
+            'indicadores' => ['respondidasPct', 'resolvidasPct', 'noPrazoPct', 'reclamacoesResolvidasPct'],
+            'compromisso' => ['tudoNoPrazo', 'diasSemAtraso', 'diasOuvindo'],
+            'elogios',
+        ]);
+        $this->assertSame(100, $r->json('indicadores.respondidasPct'));
+    }
+
+    public function test_mural_nao_expoe_volume_nem_denuncia(): void
+    {
+        $org = $this->org(['mural_ativo' => true, 'mural_token' => 'semvolumeaqui123']);
+        $this->manifestacao($org, ['categoria' => 'Denúncia', 'urgencia' => 'Crítica']);
+
+        $corpo = $this->getJson('/api/v1/mural/semvolumeaqui123')->json();
+
+        $flat = json_encode($corpo);
+        $this->assertStringNotContainsStringIgnoringCase('denúncia', $flat);
+        $this->assertArrayNotHasKey('total', $corpo['indicadores']);
+    }
+
+    public function test_isolamento_entre_organizacoes(): void
+    {
+        $a = $this->org(['mural_ativo' => true, 'mural_token' => 'orgaaaaaaaaaa1']);
+        $b = $this->org(['mural_ativo' => true, 'mural_token' => 'orgbbbbbbbbbb1']);
+
+        // A: respondida. B: aberta e vencida.
+        $this->manifestacao($a);
+        $this->manifestacao($b, ['status' => 'Recebida', 'resposta_publicada_em' => null, 'criado_em' => now()->subDays(40)]);
+
+        $this->assertSame(100, $this->getJson('/api/v1/mural/orgaaaaaaaaaa1')->json('indicadores.respondidasPct'));
+        $this->assertSame(0, $this->getJson('/api/v1/mural/orgbbbbbbbbbb1')->json('indicadores.respondidasPct'));
+    }
+
+    public function test_admin_liga_o_mural_e_recebe_link(): void
+    {
+        $org = $this->org();
+        $admin = User::factory()->create(['organizacao_id' => $org->id, 'role' => UserRole::Admin]);
+        Sanctum::actingAs($admin);
+
+        $r = $this->patchJson('/api/v1/mural', ['ativo' => true, 'titulo' => 'Fale Conosco']);
+
+        $r->assertOk();
+        $r->assertJsonPath('ativo', true);
+        $this->assertNotNull($r->json('token'));
+        $this->assertStringContainsString('/mural/'.$r->json('token'), $r->json('url'));
+
+        $this->getJson('/api/v1/mural/'.$r->json('token'))->assertOk()->assertJsonPath('titulo', 'Fale Conosco');
+    }
+
+    public function test_analista_nao_gerencia_o_mural(): void
+    {
+        $org = $this->org();
+        $analista = User::factory()->create(['organizacao_id' => $org->id, 'role' => UserRole::Analista]);
+        Sanctum::actingAs($analista);
+
+        $this->getJson('/api/v1/mural')->assertForbidden();
+        $this->patchJson('/api/v1/mural', ['ativo' => true])->assertForbidden();
+    }
+
+    public function test_regenerar_token_invalida_o_anterior(): void
+    {
+        $org = $this->org(['mural_ativo' => true, 'mural_token' => 'tokenoriginal123']);
+        $admin = User::factory()->create(['organizacao_id' => $org->id, 'role' => UserRole::Admin]);
+        Sanctum::actingAs($admin);
+
+        $novo = $this->postJson('/api/v1/mural/token')->assertOk()->json('token');
+
+        $this->assertNotSame('tokenoriginal123', $novo);
+        $this->getJson('/api/v1/mural/tokenoriginal123')->assertNotFound();
+        $this->getJson('/api/v1/mural/'.$novo)->assertOk();
+    }
+}

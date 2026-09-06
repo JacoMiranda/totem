@@ -76,6 +76,16 @@ O `DevSeeder` (só em `local`) cria:
 | **Organização** | Totem Dev (plano Profissional) |
 | **Dados de exemplo** | 60 manifestações nos últimos 60 dias, para o painel e os relatórios terem o que mostrar |
 
+### Empresa-demo completa (apresentação / vídeo)
+
+```powershell
+php artisan ouvidoria:semear-demo --fresh
+```
+
+Cria a "Rede Aurora": ~170 manifestações em 150 dias, 4 totens, respostas
+oficiais, e o **mural público** já ligado em `/mural/demoredeauroraouvidoria`.
+Login: `demo@aurora.test` / `demo1234`. Ver [DEMO-APRESENTACAO.md](DEMO-APRESENTACAO.md).
+
 ## Primeiro acesso ao kiosk (pareamento)
 
 A primeira tela do kiosk é de **login**, não de digitar chave:

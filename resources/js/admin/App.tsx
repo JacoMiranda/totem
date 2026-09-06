@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Devices } from './pages/Devices';
 import { Logs } from './pages/Logs';
 import { Login } from './pages/Login';
+import { Mural } from './pages/Mural';
 import { ManifestationDetail } from './pages/ManifestationDetail';
 import { ManifestationsList } from './pages/ManifestationsList';
 import { Relatorios } from './pages/Relatorios';
@@ -65,6 +66,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Devices />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mural"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Mural />
               </Layout>
             </ProtectedRoute>
           }

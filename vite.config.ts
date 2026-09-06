@@ -26,6 +26,7 @@ export default defineConfig({
                 'resources/js/site/main.tsx',
                 'resources/js/kiosk/main.tsx',
                 'resources/js/admin/main.tsx',
+                'resources/js/mural/main.tsx',
             ],
             refresh: true,
         }),

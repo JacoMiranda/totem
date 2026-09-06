@@ -42,6 +42,11 @@ export function Layout({ children }: { children: ReactNode }) {
               </NavLink>
             )}
             {temPapelMinimo(user?.role, 'admin') && (
+              <NavLink to="/mural" className={linkClass}>
+                Mural
+              </NavLink>
+            )}
+            {temPapelMinimo(user?.role, 'admin') && (
               <NavLink to="/logs" className={linkClass}>
                 Logs
               </NavLink>

@@ -17,6 +17,12 @@ Route::get('/atendimento/{any?}', function () {
     return view('kiosk');
 })->where('any', '.*')->name('kiosk');
 
+// Mural público de transparência - tela da recepção da empresa. Sem login;
+// a SPA puxa GET /api/v1/mural/{token} sozinha (ver MuralController).
+Route::get('/mural/{any?}', function () {
+    return view('mural');
+})->where('any', '.*')->name('mural');
+
 Route::get('/admin/{any?}', function () {
     return view('admin');
 })->where('any', '.*')->name('admin.spa');
