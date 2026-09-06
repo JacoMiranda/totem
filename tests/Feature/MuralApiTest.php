@@ -158,6 +158,39 @@ class MuralApiTest extends TestCase
         $this->patchJson('/api/v1/mural', ['ativo' => true])->assertForbidden();
     }
 
+    public function test_mural_com_pin_exige_o_codigo(): void
+    {
+        $org = $this->org(['mural_ativo' => true, 'mural_token' => 'commpinaqui123', 'mural_pin' => '4821']);
+        $this->manifestacao($org);
+
+        // Sem PIN: devolve só o "trave-se", sem dados.
+        $r = $this->getJson('/api/v1/mural/commpinaqui123');
+        $r->assertOk()->assertJsonPath('exigePin', true)->assertJsonMissing(['indicadores']);
+
+        // PIN errado.
+        $this->getJson('/api/v1/mural/commpinaqui123?pin=0000')
+            ->assertOk()->assertJsonPath('exigePin', true)->assertJsonPath('pinInvalido', true);
+
+        // PIN certo: dados completos.
+        $this->getJson('/api/v1/mural/commpinaqui123?pin=4821')
+            ->assertOk()->assertJsonPath('exigePin', false)->assertJsonStructure(['indicadores']);
+    }
+
+    public function test_admin_define_e_remove_o_pin_do_mural(): void
+    {
+        $org = $this->org(['mural_ativo' => true, 'mural_token' => 'pinadmin12345']);
+        Sanctum::actingAs(User::factory()->create(['organizacao_id' => $org->id, 'role' => UserRole::Admin]));
+
+        $this->patchJson('/api/v1/mural', ['ativo' => true, 'pin' => '123456'])
+            ->assertOk()->assertJsonPath('pinDefinido', true);
+        $this->assertSame('123456', $org->fresh()->mural_pin);
+
+        $this->patchJson('/api/v1/mural', ['ativo' => true, 'pin' => 'abc'])->assertStatus(422);
+
+        $this->patchJson('/api/v1/mural', ['ativo' => true, 'pin' => null])
+            ->assertOk()->assertJsonPath('pinDefinido', false);
+    }
+
     public function test_admin_personaliza_o_token_do_mural(): void
     {
         $org = $this->org(['mural_ativo' => true, 'mural_token' => 'aleatoriolongo123']);

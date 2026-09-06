@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { MuralDados } from './tipos';
+import type { MuralDados, MuralExigePin } from './tipos';
 
 /**
  * Mural público de transparência (docs/MURAL-PUBLICO.md). Sem login: lê o
@@ -49,8 +49,20 @@ function tokenDaUrl(): string {
 
 type Erro = null | 'inicial' | 'mudou';
 
+function chavePin(token: string): string {
+  return `mural:pin:${token}`;
+}
+function lerPin(token: string): string {
+  try {
+    return localStorage.getItem(chavePin(token)) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export default function App() {
   const [dados, setDados] = useState<MuralDados | null>(null);
+  const [pinGate, setPinGate] = useState<MuralExigePin | null>(null);
   const [erro, setErro] = useState<Erro>(null);
   const token = useMemo(tokenDaUrl, []);
 
@@ -61,23 +73,38 @@ export default function App() {
     let carregouAlgumaVez = false;
     const carregar = async () => {
       try {
-        const r = await fetch(`/api/v1/mural/${token}`, { headers: { Accept: 'application/json' } });
-        // 404 = link morto (token trocado + grace vencido, ou mural desligado).
-        // Diferente de uma oscilação de rede: aí SIM a TV troca de tela.
+        const pin = lerPin(token);
+        const url = `/api/v1/mural/${token}${pin ? `?pin=${encodeURIComponent(pin)}` : ''}`;
+        const r = await fetch(url, { headers: { Accept: 'application/json' } });
         if (r.status === 404) {
           if (vivo) setErro('mudou');
 
           return;
         }
         if (!r.ok) throw new Error(String(r.status));
-        const json = (await r.json()) as MuralDados;
-        if (vivo) {
-          carregouAlgumaVez = true;
-          setDados(json);
-          setErro(null);
+        const json = await r.json();
+        if (!vivo) return;
+
+        if (json.exigePin) {
+          // PIN errado guardado (ex.: admin trocou) -> apaga pra pedir de novo.
+          if (json.pinInvalido) {
+            try {
+              localStorage.removeItem(chavePin(token));
+            } catch {
+              /* ok */
+            }
+          }
+          setPinGate(json as MuralExigePin);
+          setDados(null);
+
+          return;
         }
+
+        carregouAlgumaVez = true;
+        setDados(json as MuralDados);
+        setPinGate(null);
+        setErro(null);
       } catch {
-        // Oscilação de rede: mantém a última tela que carregou.
         if (vivo && !carregouAlgumaVez) setErro('inicial');
       }
     };
@@ -102,10 +129,71 @@ export default function App() {
         <p className="mt-[1.5vmin] text-[2.2vmin]">Peça o link novo ao administrador e atualize esta tela.</p>
       </Aviso>
     );
+  if (pinGate)
+    return (
+      <PinGate
+        gate={pinGate}
+        onOk={(pin) => {
+          try {
+            localStorage.setItem(chavePin(token), pin);
+          } catch {
+            /* ok */
+          }
+          window.location.reload();
+        }}
+      />
+    );
   if (erro === 'inicial') return <Aviso>Mural indisponível no momento.</Aviso>;
   if (!dados) return <Aviso>Carregando…</Aviso>;
 
   return <Board dados={dados} />;
+}
+
+function PinGate({ gate, onOk }: { gate: MuralExigePin; onOk: (pin: string) => void }) {
+  const [pin, setPin] = useState('');
+  const escuro = gate.tema === 'escuro';
+
+  const digitar = (d: string) => setPin((p) => (p + d).slice(0, 8));
+
+  return (
+    <div
+      className="flex h-screen flex-col items-center justify-center gap-[3vmin] p-8"
+      style={{ background: escuro ? '#0b1220' : '#eef4fb', color: escuro ? '#e8eef9' : '#1e293b' }}
+    >
+      <p className="text-[3vmin] font-extrabold">{gate.titulo}</p>
+      <p className="text-[2vmin] opacity-70">Digite o código para ativar esta tela.</p>
+      {gate.pinInvalido && <p className="text-[2vmin] font-bold text-rose-500">Código incorreto.</p>}
+      <div className="text-[4vmin] font-mono tracking-[0.4em] min-h-[5vmin]">{'•'.repeat(pin.length)}</div>
+      <div className="grid grid-cols-3 gap-[2vmin]">
+        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => digitar(d)}
+            className="h-[10vmin] w-[10vmin] rounded-2xl text-[3.5vmin] font-bold"
+            style={{ background: escuro ? '#1c2740' : '#ffffff' }}
+          >
+            {d}
+          </button>
+        ))}
+        <button type="button" onClick={() => setPin('')} className="h-[10vmin] w-[10vmin] rounded-2xl text-[2vmin]" style={{ background: escuro ? '#1c2740' : '#ffffff' }}>
+          limpar
+        </button>
+        <button type="button" onClick={() => digitar('0')} className="h-[10vmin] w-[10vmin] rounded-2xl text-[3.5vmin] font-bold" style={{ background: escuro ? '#1c2740' : '#ffffff' }}>
+          0
+        </button>
+        <button
+          type="button"
+          disabled={pin.length < 4}
+          onClick={() => onOk(pin)}
+          className="h-[10vmin] w-[10vmin] rounded-2xl text-[2.4vmin] font-extrabold text-white disabled:opacity-40"
+          style={{ background: '#3b82f6' }}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function Board({ dados }: { dados: MuralDados }) {

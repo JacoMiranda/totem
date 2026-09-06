@@ -34,7 +34,7 @@ class MuralController extends Controller
 
     public function __construct(private readonly MuralService $mural) {}
 
-    public function show(string $token): JsonResponse
+    public function show(Request $request, string $token): JsonResponse
     {
         $org = Organizacao::where('mural_ativo', true)
             ->where(function ($q) use ($token) {
@@ -49,6 +49,20 @@ class MuralController extends Controller
             ], 404);
         }
 
+        // PIN opcional: sem o código certo, devolve só o "trave-se" - a
+        // tela pede o PIN e refaz a chamada com ?pin=.
+        if ($org->mural_pin) {
+            $pin = (string) $request->query('pin', '');
+            if ($pin !== $org->mural_pin) {
+                return response()->json([
+                    'exigePin' => true,
+                    'pinInvalido' => $pin !== '',
+                    'titulo' => $org->muralTitulo(),
+                    'tema' => in_array($org->mural_tema, ['claro', 'escuro'], true) ? $org->mural_tema : 'claro',
+                ]);
+            }
+        }
+
         $dados = Cache::remember(
             "mural:org:{$org->id}",
             self::CACHE_SEGUNDOS,
@@ -56,6 +70,7 @@ class MuralController extends Controller
         );
         // Servido pelo token ANTIGO (grace) -> a tela mostra um aviso.
         $dados['linkMudando'] = $org->mural_token !== $token;
+        $dados['exigePin'] = false;
 
         return response()->json($dados);
     }
@@ -109,6 +124,8 @@ class MuralController extends Controller
                 'regex:/^[a-z0-9][a-z0-9-]{4,63}$/', 'not_in:resumo,config,token',
                 Rule::unique('organizacoes', 'mural_token')->ignore($org->id),
             ],
+            // PIN: 4 a 8 dígitos, ou vazio pra remover.
+            'pin' => ['sometimes', 'nullable', 'string', 'regex:/^\d{4,8}$/'],
         ]);
 
         if ($request->filled('token') && $dados['token'] !== $org->mural_token) {
@@ -130,6 +147,9 @@ class MuralController extends Controller
         }
         if ($request->has('linhaCor')) {
             $org->mural_linha_cor = $dados['linhaCor'] ?: null;
+        }
+        if ($request->has('pin')) {
+            $org->mural_pin = $dados['pin'] ?: null;
         }
         $org->save();
 
@@ -172,6 +192,7 @@ class MuralController extends Controller
             'tema' => in_array($org->mural_tema, ['claro', 'escuro'], true) ? $org->mural_tema : 'claro',
             'totemLocal' => $org->mural_totem_local,
             'linhaCor' => $org->mural_linha_cor,
+            'pinDefinido' => (bool) $org->mural_pin,
             'token' => $org->mural_token,
             'url' => $org->mural_token ? url("/mural/{$org->mural_token}") : null,
             // Se um link antigo ainda está no ar (grace), o painel avisa

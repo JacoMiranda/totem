@@ -4,6 +4,7 @@ export interface MuralDados {
   orientacao: { local: string | null; linhaCor: string | null };
   /** Servido pelo endereço ANTIGO (grace de 48h após troca do token). */
   linkMudando?: boolean;
+  exigePin?: false;
   atualizadoEm: string;
   janelaDias: number;
   amostraPequena: boolean;
@@ -29,4 +30,11 @@ export interface MuralDados {
     atentoPct: number | null;
   };
   elogios: { texto: string; unidade: string | null; quando: string }[];
+}
+
+export interface MuralExigePin {
+  exigePin: true;
+  pinInvalido: boolean;
+  titulo: string;
+  tema: 'claro' | 'escuro';
 }

@@ -13,6 +13,7 @@ interface Config {
   tema: 'claro' | 'escuro';
   totemLocal: string | null;
   linhaCor: string | null;
+  pinDefinido: boolean;
   token: string | null;
   url: string | null;
   linkAnterior: { token: string; ate: string } | null;
@@ -44,7 +45,7 @@ export function Mural() {
     void carregar();
   }, []);
 
-  const salvar = async (patch: { ativo?: boolean; tema?: 'claro' | 'escuro'; linhaCor?: string; token?: string }) => {
+  const salvar = async (patch: { ativo?: boolean; tema?: 'claro' | 'escuro'; linhaCor?: string; token?: string; pin?: string | null }) => {
     setSalvando(true);
     setErro(null);
     try {
@@ -55,12 +56,13 @@ export function Mural() {
         ...(patch.tema ? { tema: patch.tema } : {}),
         ...(patch.linhaCor !== undefined ? { linhaCor: patch.linhaCor || null } : {}),
         ...(patch.token ? { token: patch.token } : {}),
+        ...(patch.pin !== undefined ? { pin: patch.pin } : {}),
       });
       setCfg(data);
       setToken(data.token ?? '');
     } catch (e) {
       const erros = (e as { response?: { data?: { errors?: Record<string, string[]> } } })?.response?.data?.errors;
-      setErro(erros?.token?.[0] ?? 'Não foi possível salvar. Tente de novo.');
+      setErro(erros?.token?.[0] ?? erros?.pin?.[0] ?? 'Não foi possível salvar. Tente de novo.');
     } finally {
       setSalvando(false);
     }
@@ -207,6 +209,43 @@ export function Mural() {
             Personalize (ex.: <code>minha-empresa</code>) ou deixe o código aleatório. Letras minúsculas, números e
             hífen; mínimo 5. Quanto mais óbvio, menos privado — qualquer pessoa que adivinhe abre o mural.
           </p>
+
+          <div className="border-t border-slate-200 pt-3 flex flex-col gap-2">
+            <span className="text-xs font-bold uppercase text-slate-500">Proteger com PIN {cfg.pinDefinido && <span className="text-emerald-600">· ativo</span>}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                inputMode="numeric"
+                maxLength={8}
+                defaultValue=""
+                placeholder={cfg.pinDefinido ? '•••• (definido)' : '4 a 8 dígitos'}
+                onChange={(e) => (e.currentTarget.value = e.currentTarget.value.replace(/\D/g, ''))}
+                id="mural-pin"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm w-40"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('mural-pin') as HTMLInputElement;
+                  if (el?.value.length >= 4) {
+                    salvar({ pin: el.value });
+                    el.value = '';
+                  }
+                }}
+                className="rounded-lg bg-blue-600 text-white px-4 py-2 text-xs font-bold"
+              >
+                {cfg.pinDefinido ? 'Trocar PIN' : 'Definir PIN'}
+              </button>
+              {cfg.pinDefinido && (
+                <button type="button" onClick={() => salvar({ pin: null })} className="text-xs font-bold text-rose-600 underline">
+                  remover
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Com PIN, cada TV digita o código uma vez (fica guardada). Um link copiado pra outro navegador pede o
+              PIN de novo. Trocar o PIN faz todas as telas pedirem o novo.
+            </p>
+          </div>
 
           {cfg.linkAnterior && (
             <p className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px] p-2">

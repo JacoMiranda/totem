@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'nome', 'slug', 'documento', 'plano_id', 'status', 'trial_expira_em',
     'mural_ativo', 'mural_token', 'mural_titulo', 'mural_tema',
     'mural_totem_local', 'mural_linha_cor',
-    'mural_token_anterior', 'mural_token_anterior_ate',
+    'mural_token_anterior', 'mural_token_anterior_ate', 'mural_pin',
 ])]
 class Organizacao extends Model
 {

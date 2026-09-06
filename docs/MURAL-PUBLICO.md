@@ -75,6 +75,14 @@ reservados. Quanto mais óbvio o token, menos privado o link (qualquer um
 que adivinhe abre). É semi-público de qualquer forma: quem tem o link vê,
 e a página tem `<meta robots noindex>`.
 
+**PIN opcional** (`mural_pin`, 4-8 dígitos, definido em `/admin/mural`):
+sem PIN, o link abre direto. Com PIN, `GET /mural/{token}` sem `?pin=`
+certo devolve só `{exigePin: true}` — a tela pede o código, guarda em
+`localStorage` (`mural:pin:<token>`) e refaz a chamada. Um link copiado
+pra outro navegador pede o PIN de novo. Trocar o PIN faz todas as telas
+pedirem o novo. É código de conveniência (texto claro no banco), não
+credencial — o dado do mural já é só percentual agregado.
+
 **Trocar o token não deixa uma TV órfã de imediato:** o endereço antigo
 (`mural_token_anterior` / `mural_token_anterior_ate`) continua resolvendo
 por **48h**, com uma faixa amarela "este mural mudou de endereço" no topo.
