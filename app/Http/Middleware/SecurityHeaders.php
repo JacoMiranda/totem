@@ -38,6 +38,34 @@ class SecurityHeaders
         return $response;
     }
 
+    /**
+     * Origens do dev server do Vite a liberar na CSP.
+     *
+     * Lê `public/hot` (onde o próprio Vite grava a URL em que está
+     * escutando) em vez de manter uma lista fixa: sem isso, acessar de
+     * outro aparelho da rede (`.\dev.ps1 -Rede`, Vite em
+     * http://192.168.x.x:5173) tinha os scripts bloqueados pela CSP e a
+     * página vinha em branco. Vale igual para um túnel HTTPS.
+     *
+     * @return string[]
+     */
+    private function origensDoVite(): array
+    {
+        $origens = ['http://127.0.0.1:5173', 'http://localhost:5173'];
+
+        $hot = public_path('hot');
+        if (is_file($hot)) {
+            $url = trim((string) file_get_contents($hot));
+            $partes = parse_url($url);
+            if (! empty($partes['scheme']) && ! empty($partes['host'])) {
+                $porta = isset($partes['port']) ? ':'.$partes['port'] : '';
+                $origens[] = $partes['scheme'].'://'.$partes['host'].$porta;
+            }
+        }
+
+        return array_values(array_unique($origens));
+    }
+
     private function csp(): string
     {
         $script = "'self' 'wasm-unsafe-eval' blob:";
@@ -45,8 +73,11 @@ class SecurityHeaders
         $connect = "'self'";
 
         if (App::environment('local')) {
-            $vite = 'http://127.0.0.1:5173 http://localhost:5173';
-            $viteWs = 'ws://127.0.0.1:5173 ws://localhost:5173';
+            $vite = implode(' ', $this->origensDoVite());
+            $viteWs = implode(' ', array_map(
+                fn (string $o) => str_replace(['http://', 'https://'], ['ws://', 'wss://'], $o),
+                $this->origensDoVite(),
+            ));
             // 'unsafe-inline': o preâmbulo do React Fast Refresh
             // (@viteReactRefresh) é um <script> inline. Só em dev.
             $script .= " 'unsafe-inline' {$vite}";
