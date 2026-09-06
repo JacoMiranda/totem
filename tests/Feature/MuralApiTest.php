@@ -158,6 +158,35 @@ class MuralApiTest extends TestCase
         $this->patchJson('/api/v1/mural', ['ativo' => true])->assertForbidden();
     }
 
+    public function test_admin_personaliza_o_token_do_mural(): void
+    {
+        $org = $this->org(['mural_ativo' => true, 'mural_token' => 'aleatoriolongo123']);
+        $admin = User::factory()->create(['organizacao_id' => $org->id, 'role' => UserRole::Admin]);
+        Sanctum::actingAs($admin);
+
+        $r = $this->patchJson('/api/v1/mural', ['ativo' => true, 'token' => 'minha-empresa']);
+        $r->assertOk()->assertJsonPath('token', 'minha-empresa');
+        $this->assertStringEndsWith('/mural/minha-empresa', $r->json('url'));
+
+        $this->getJson('/api/v1/mural/aleatoriolongo123')->assertNotFound();
+        $this->getJson('/api/v1/mural/minha-empresa')->assertOk();
+
+        // curto demais, caractere inválido, ou palavra reservada = 422
+        $this->patchJson('/api/v1/mural', ['ativo' => true, 'token' => 'ab'])->assertStatus(422);
+        $this->patchJson('/api/v1/mural', ['ativo' => true, 'token' => 'Com Espaço'])->assertStatus(422);
+        $this->patchJson('/api/v1/mural', ['ativo' => true, 'token' => 'resumo'])->assertStatus(422);
+    }
+
+    public function test_token_personalizado_nao_colide_entre_organizacoes(): void
+    {
+        $a = $this->org(['mural_ativo' => true, 'mural_token' => 'jatomado123']);
+        $b = $this->org();
+        $admin = User::factory()->create(['organizacao_id' => $b->id, 'role' => UserRole::Admin]);
+        Sanctum::actingAs($admin);
+
+        $this->patchJson('/api/v1/mural', ['ativo' => true, 'token' => 'jatomado123'])->assertStatus(422);
+    }
+
     public function test_regenerar_token_invalida_o_anterior(): void
     {
         $org = $this->org(['mural_ativo' => true, 'mural_token' => 'tokenoriginal123']);

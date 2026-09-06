@@ -23,6 +23,7 @@ export function Mural() {
   const [cfg, setCfg] = useState<Config | null>(null);
   const [titulo, setTitulo] = useState('');
   const [local, setLocal] = useState('');
+  const [token, setToken] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [copiado, setCopiado] = useState(false);
@@ -34,6 +35,7 @@ export function Mural() {
         setCfg(data);
         setTitulo(data.titulo ?? '');
         setLocal(data.totemLocal ?? '');
+        setToken(data.token ?? '');
       })
       .catch(() => setErro('Não foi possível carregar a configuração do mural.'));
 
@@ -41,7 +43,7 @@ export function Mural() {
     void carregar();
   }, []);
 
-  const salvar = async (patch: { ativo?: boolean; tema?: 'claro' | 'escuro'; linhaCor?: string }) => {
+  const salvar = async (patch: { ativo?: boolean; tema?: 'claro' | 'escuro'; linhaCor?: string; token?: string }) => {
     setSalvando(true);
     setErro(null);
     try {
@@ -51,10 +53,13 @@ export function Mural() {
         totemLocal: local.trim() || null,
         ...(patch.tema ? { tema: patch.tema } : {}),
         ...(patch.linhaCor !== undefined ? { linhaCor: patch.linhaCor || null } : {}),
+        ...(patch.token ? { token: patch.token } : {}),
       });
       setCfg(data);
-    } catch {
-      setErro('Não foi possível salvar. Tente de novo.');
+      setToken(data.token ?? '');
+    } catch (e) {
+      const erros = (e as { response?: { data?: { errors?: Record<string, string[]> } } })?.response?.data?.errors;
+      setErro(erros?.token?.[0] ?? 'Não foi possível salvar. Tente de novo.');
     } finally {
       setSalvando(false);
     }
@@ -180,7 +185,29 @@ export function Mural() {
       {cfg.url && (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 flex flex-col gap-3">
           <span className="text-xs font-bold uppercase text-slate-500">Link do mural</span>
+
           <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-500 font-mono">/mural/</span>
+            <input
+              value={token}
+              onChange={(e) => setToken(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+              className="flex-1 min-w-32 rounded-lg border border-slate-300 px-3 py-2 text-xs font-mono"
+            />
+            <button
+              type="button"
+              disabled={salvando || token === cfg.token || token.length < 5}
+              onClick={() => salvar({ token })}
+              className="rounded-lg bg-blue-600 text-white px-4 py-2 text-xs font-bold disabled:opacity-40"
+            >
+              Salvar link
+            </button>
+          </div>
+          <p className="text-[11px] text-slate-500">
+            Personalize (ex.: <code>minha-empresa</code>) ou deixe o código aleatório. Letras minúsculas, números e
+            hífen; mínimo 5. Quanto mais óbvio, menos privado — qualquer pessoa que adivinhe abre o mural.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3">
             <code className="flex-1 min-w-0 truncate rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs">
               {cfg.url}
             </code>
@@ -195,14 +222,10 @@ export function Mural() {
             >
               Abrir
             </a>
+            <button type="button" onClick={regenerar} disabled={salvando} className="text-xs font-bold text-blue-700 underline">
+              gerar aleatório
+            </button>
           </div>
-          <p className="text-[11px] text-slate-500">
-            Qualquer pessoa com este link vê o mural. Trate como semi-público — não indexa em busca, mas é
-            acessível. Se vazar, gere um link novo.
-          </p>
-          <button type="button" onClick={regenerar} disabled={salvando} className="self-start text-xs font-bold text-blue-700 underline">
-            Gerar link novo
-          </button>
         </div>
       )}
     </div>

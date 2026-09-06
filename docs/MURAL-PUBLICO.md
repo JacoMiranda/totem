@@ -66,10 +66,14 @@ tem** nada disso: lá o acesso é só pelo painel de suporte com PIN.
 https://SEU-DOMINIO/mural/<token de 40 caracteres>
 ```
 
-O token **não** é o slug da empresa — concorrente não acha pela razão
-social. É semi-público: quem tem o link vê. `<meta name="robots"
-noindex>` na página. Se vazar, o admin gera um link novo
-(`POST /api/v1/mural/token`) e o anterior morre na hora.
+O token é **editável** em `/admin/mural` (`minha-empresa`, `recepcao-hu`…)
+ou aleatório de 40 caracteres. Na primeira ativação o default é o slug da
+organização, se estiver livre; senão, aleatório. Regras: `[a-z0-9-]`,
+mínimo 5, único entre todas as contas, e `resumo`/`config`/`token` são
+reservados. Quanto mais óbvio o token, menos privado o link (qualquer um
+que adivinhe abre). É semi-público de qualquer forma: quem tem o link vê,
+e a página tem `<meta robots noindex>`. Se vazar, "gerar aleatório"
+(`POST /api/v1/mural/token`) troca o link e o anterior morre na hora.
 
 ## Na tela de espera do totem
 

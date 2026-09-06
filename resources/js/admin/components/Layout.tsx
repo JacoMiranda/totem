@@ -62,9 +62,9 @@ export function Layout({ children }: { children: ReactNode }) {
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-slate-500">
+          <NavLink to="/perfil" className="text-slate-600 hover:text-slate-900 font-semibold">
             {user?.name} · <span className="uppercase text-xs font-bold">{user?.role}</span>
-          </span>
+          </NavLink>
           <button type="button" onClick={sair} className="text-rose-600 font-bold text-xs">
             Sair
           </button>

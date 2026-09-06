@@ -49,6 +49,23 @@ export const ARTIGOS: Artigo[] = [
     ],
   },
   {
+    id: 'perfil',
+    titulo: 'Meu perfil: trocar nome e senha',
+    publico: 'equipe',
+    categoria: 'Primeiros passos',
+    tags: ['perfil', 'senha', 'nome', 'trocar senha', 'conta'],
+    corpo: [
+      { p: 'Clique no seu nome no canto superior direito do painel para abrir "Meu perfil".' },
+      {
+        ul: [
+          'Nome — muda o que aparece pra equipe (e como responsável de manifestações).',
+          'Senha — exige a senha atual + a nova (mínimo 8 caracteres).',
+        ],
+      },
+      { nota: 'E-mail e papel não se mudam aqui. Papel é o admin quem define, em Equipe. Esqueceu a senha e não consegue entrar? Um admin redefine pra você em Equipe.' },
+    ],
+  },
+  {
     id: 'primeiro-acesso',
     titulo: 'Primeiro acesso ao painel',
     publico: 'equipe',

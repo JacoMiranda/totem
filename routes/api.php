@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::get('/me', [AuthController::class, 'me']);
+            Route::patch('/me', [AuthController::class, 'atualizarPerfil']);
         });
     });
 
@@ -134,6 +135,6 @@ Route::prefix('v1')->group(function () {
         Route::delete('/public/manifestations/{protocolo}', [PublicManifestationController::class, 'eliminar']);
 
         // Mural público de transparência (a tela da recepção puxa isto sozinha).
-        Route::get('/mural/{token}', [MuralController::class, 'show'])->where('token', '[a-z0-9]{10,64}');
+        Route::get('/mural/{token}', [MuralController::class, 'show'])->where('token', '[a-z0-9][a-z0-9-]{4,63}');
     });
 });

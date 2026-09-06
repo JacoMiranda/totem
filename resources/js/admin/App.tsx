@@ -7,6 +7,7 @@ import { Equipe } from './pages/Equipe';
 import { Logs } from './pages/Logs';
 import { Login } from './pages/Login';
 import { Mural } from './pages/Mural';
+import { Perfil } from './pages/Perfil';
 import { ManifestationDetail } from './pages/ManifestationDetail';
 import { ManifestationsList } from './pages/ManifestationsList';
 import { Relatorios } from './pages/Relatorios';
@@ -98,6 +99,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Ajuda />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/perfil"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Perfil />
               </Layout>
             </ProtectedRoute>
           }

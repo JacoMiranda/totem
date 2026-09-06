@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * Mural público de transparência (docs/MURAL-PUBLICO.md).
@@ -85,13 +86,27 @@ class MuralController extends Controller
             'tema' => ['sometimes', 'in:claro,escuro'],
             'totemLocal' => ['sometimes', 'nullable', 'string', 'max:120'],
             'linhaCor' => ['sometimes', 'nullable', 'string', 'max:20'],
+            // Trecho da URL: /mural/<token>. Letras minúsculas, números e
+            // hífen. Curto/óbvio é menos privado (o link deixa de ser secreto).
+            'token' => [
+                'sometimes', 'string', 'min:5', 'max:64',
+                'regex:/^[a-z0-9][a-z0-9-]{4,63}$/', 'not_in:resumo,config,token',
+                Rule::unique('organizacoes', 'mural_token')->ignore($org->id),
+            ],
         ]);
 
-        if ($dados['ativo'] && ! $org->mural_token) {
-            $org->mural_token = $this->tokenNovo();
+        if ($request->filled('token')) {
+            if ($org->mural_token) {
+                Cache::forget("mural:{$org->mural_token}");
+            }
+            $org->mural_token = $dados['token'];
+        } elseif ($dados['ativo'] && ! $org->mural_token) {
+            $org->mural_token = $this->tokenNovo($org);
         }
         $org->mural_ativo = $dados['ativo'];
-        $org->mural_titulo = $dados['titulo'] ?: null;
+        if ($request->has('titulo')) {
+            $org->mural_titulo = $dados['titulo'] ?: null;
+        }
         if (isset($dados['tema'])) {
             $org->mural_tema = $dados['tema'];
         }
@@ -118,7 +133,7 @@ class MuralController extends Controller
         if ($org->mural_token) {
             Cache::forget("mural:{$org->mural_token}");
         }
-        $org->mural_token = $this->tokenNovo();
+        $org->mural_token = $this->tokenNovo($org, aleatorio: true);
         $org->save();
 
         return response()->json($this->payloadConfig($org));
@@ -138,8 +153,21 @@ class MuralController extends Controller
         ];
     }
 
-    private function tokenNovo(): string
+    /**
+     * Token novo. Por padrão tenta o slug da organização ("minhaempresa");
+     * se já estiver em uso, ou se `aleatorio`, usa 40 caracteres aleatórios.
+     * O admin pode trocar por qualquer coisa depois em /admin/mural.
+     */
+    private function tokenNovo(Organizacao $org, bool $aleatorio = false): string
     {
+        $slug = Str::of($org->slug)->lower()->replaceMatches('/[^a-z0-9-]/', '')->toString();
+
+        if (! $aleatorio && strlen($slug) >= 5
+            && ! Organizacao::where('mural_token', $slug)->exists()
+            && ! in_array($slug, ['resumo', 'config', 'token'], true)) {
+            return $slug;
+        }
+
         return Str::lower(Str::random(40));
     }
 
