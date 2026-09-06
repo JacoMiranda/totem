@@ -10,6 +10,7 @@ interface Config {
   ativo: boolean;
   titulo: string | null;
   tituloEfetivo: string;
+  tema: 'claro' | 'escuro';
   token: string | null;
   url: string | null;
 }
@@ -34,11 +35,15 @@ export function Mural() {
     void carregar();
   }, []);
 
-  const salvar = async (ativo: boolean) => {
+  const salvar = async (patch: { ativo?: boolean; tema?: 'claro' | 'escuro' }) => {
     setSalvando(true);
     setErro(null);
     try {
-      const { data } = await api.patch('/mural', { ativo, titulo: titulo.trim() || null });
+      const { data } = await api.patch('/mural', {
+        ativo: patch.ativo ?? cfg?.ativo ?? false,
+        titulo: titulo.trim() || null,
+        ...(patch.tema ? { tema: patch.tema } : {}),
+      });
       setCfg(data);
     } catch {
       setErro('Não foi possível salvar. Tente de novo.');
@@ -92,7 +97,7 @@ export function Mural() {
         <button
           type="button"
           disabled={salvando}
-          onClick={() => salvar(!cfg.ativo)}
+          onClick={() => salvar({ ativo: !cfg.ativo })}
           className={`rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50 ${
             cfg.ativo ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700'
           }`}
@@ -106,12 +111,31 @@ export function Mural() {
         <input
           value={titulo}
           onChange={(e) => setTitulo(e.target.value)}
-          onBlur={() => cfg.ativo && salvar(cfg.ativo)}
+          onBlur={() => cfg.ativo && salvar({})}
           placeholder={cfg.tituloEfetivo}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
         <span className="text-[11px] text-slate-400">Em branco usa “{cfg.tituloEfetivo}”.</span>
       </label>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-bold uppercase text-slate-500">Aparência</span>
+        <div className="flex gap-2">
+          {(['claro', 'escuro'] as const).map((tm) => (
+            <button
+              key={tm}
+              type="button"
+              onClick={() => salvar({ tema: tm })}
+              className={`flex-1 rounded-xl border-2 px-4 py-3 text-sm font-bold capitalize ${
+                cfg.tema === tm ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-slate-200 text-slate-600'
+              }`}
+            >
+              {tm === 'claro' ? '☀️ Claro' : '🌙 Escuro'}
+            </button>
+          ))}
+        </div>
+        <span className="text-[11px] text-slate-400">Escuro combina com TVs em ambiente com pouca luz.</span>
+      </div>
 
       {cfg.url && (
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 flex flex-col gap-3">

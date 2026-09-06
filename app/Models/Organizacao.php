@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'nome', 'slug', 'documento', 'plano_id', 'status', 'trial_expira_em',
-    'mural_ativo', 'mural_token', 'mural_titulo',
+    'mural_ativo', 'mural_token', 'mural_titulo', 'mural_tema',
 ])]
 class Organizacao extends Model
 {

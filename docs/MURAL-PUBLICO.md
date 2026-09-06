@@ -37,6 +37,15 @@ pareça CPF, telefone ou e-mail do resumo antes de exibir, e corta em 170
 caracteres. O resumo é gerado pela IA (não é a transcrição, que é
 cifrada), risco de PII é baixo — mas a régua está lá.
 
+## Aparência
+
+O admin escolhe em `/admin/mural` entre **claro** (dashboard branco,
+cabeçalho azul — igual às peças de marketing) e **escuro** (fundo escuro,
+pra TV em ambiente com pouca luz). Só troca as variáveis CSS; layout e
+dados iguais. Coluna `mural_tema` em `organizacoes`. O dashboard trava na
+altura do monitor (`h-screen` + `overflow-hidden`) — cabe numa tela só,
+sem rolagem.
+
 ## Acesso
 
 **Opt-in.** Desligado por padrão. O admin da conta liga em

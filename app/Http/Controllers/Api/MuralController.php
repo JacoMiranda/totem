@@ -82,6 +82,7 @@ class MuralController extends Controller
         $dados = $request->validate([
             'ativo' => ['required', 'boolean'],
             'titulo' => ['nullable', 'string', 'max:120'],
+            'tema' => ['sometimes', 'in:claro,escuro'],
         ]);
 
         if ($dados['ativo'] && ! $org->mural_token) {
@@ -89,6 +90,9 @@ class MuralController extends Controller
         }
         $org->mural_ativo = $dados['ativo'];
         $org->mural_titulo = $dados['titulo'] ?: null;
+        if (isset($dados['tema'])) {
+            $org->mural_tema = $dados['tema'];
+        }
         $org->save();
 
         if ($org->mural_token) {
@@ -118,6 +122,7 @@ class MuralController extends Controller
             'ativo' => (bool) $org->mural_ativo,
             'titulo' => $org->mural_titulo,
             'tituloEfetivo' => $org->muralTitulo(),
+            'tema' => in_array($org->mural_tema, ['claro', 'escuro'], true) ? $org->mural_tema : 'claro',
             'token' => $org->mural_token,
             'url' => $org->mural_token ? url("/mural/{$org->mural_token}") : null,
         ];

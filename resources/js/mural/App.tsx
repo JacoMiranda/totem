@@ -2,18 +2,46 @@ import { useEffect, useMemo, useState } from 'react';
 import type { MuralDados } from './tipos';
 
 /**
- * Mural público de transparência - a tela que a empresa põe na recepção
- * (docs/MURAL-PUBLICO.md). Sem login: lê o token do caminho (/mural/{token})
- * e puxa GET /api/v1/mural/{token} sozinha, recarregando a cada 2 min.
+ * Mural público de transparência (docs/MURAL-PUBLICO.md). Sem login: lê o
+ * token do caminho (/mural/{token}), puxa GET /api/v1/mural/{token} e
+ * recarrega a cada 2 min.
  *
- * Layout de dashboard claro: cabeçalho azul, três indicadores com ícone,
- * e três painéis (volume por período, distribuição por teor, clima). Só
- * percentuais e o movimento do canal - nunca fila de problemas nem a
- * palavra "denúncia" (ver MuralService).
+ * Dashboard numa tela só (trava na altura do monitor - `h-screen` +
+ * `overflow-hidden`): cabeçalho, três indicadores com ícone e três painéis
+ * (volume por semana, teor, sentimento). Tema `claro` ou `escuro` vem do
+ * backend (o admin escolhe em /admin/mural) e troca só as variáveis CSS.
  */
 const RECARGA_MS = 120_000;
+const AZUL = '#3b82f6';
 
-const AZUL = '#2563eb';
+const TEMAS = {
+  claro: {
+    bg: '#eef4fb',
+    card: '#ffffff',
+    ink: '#1e293b',
+    muted: '#94a3b8',
+    trilho: '#eef2f7',
+    borda: '#e3ecfb',
+    cabecalho: 'linear-gradient(90deg,#1d6fd6,#2563eb)',
+    cabecalhoInk: '#ffffff',
+    cabecalhoSub: '#bfdbfe',
+    conviteBg: 'linear-gradient(90deg,#ecfdf5,#eff6ff)',
+    conviteBorda: '#bbf7d0',
+  },
+  escuro: {
+    bg: '#0b1220',
+    card: '#131d31',
+    ink: '#e8eef9',
+    muted: '#7f8ca6',
+    trilho: '#22304c',
+    borda: '#25324c',
+    cabecalho: 'linear-gradient(90deg,#16233f,#1e335f)',
+    cabecalhoInk: '#eaf1ff',
+    cabecalhoSub: '#93b4e8',
+    conviteBg: 'linear-gradient(90deg,#0f2a22,#122544)',
+    conviteBorda: '#1f5c47',
+  },
+};
 
 function tokenDaUrl(): string {
   return window.location.pathname.replace(/^\/mural\/?/, '').split(/[/?#]/)[0] ?? '';
@@ -62,49 +90,61 @@ export default function App() {
 }
 
 function Board({ dados }: { dados: MuralDados }) {
+  const t = TEMAS[dados.tema] ?? TEMAS.claro;
   const i = dados.indicadores;
 
+  const vars = {
+    '--bg': t.bg,
+    '--card': t.card,
+    '--ink': t.ink,
+    '--muted': t.muted,
+    '--trilho': t.trilho,
+    '--borda': t.borda,
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#eef4fb] text-slate-800">
+    <div className="flex h-screen flex-col overflow-hidden" style={{ ...vars, background: 'var(--bg)', color: 'var(--ink)' }}>
       {/* cabeçalho */}
       <header
-        className="flex items-center justify-between gap-4 px-[4vmin] py-[2.4vmin] text-white"
-        style={{ background: `linear-gradient(90deg, #1d6fd6, ${AZUL})` }}
+        className="flex shrink-0 items-center justify-between gap-4 px-[4vmin] py-[2vmin]"
+        style={{ background: t.cabecalho, color: t.cabecalhoInk }}
       >
         <div className="flex items-center gap-[2vmin]">
-          <span className="text-[4vmin]">📣</span>
+          <span className="text-[3.6vmin]">📣</span>
           <div>
-            <p className="text-[1.5vmin] font-bold uppercase tracking-[0.3em] text-blue-100">Transparência</p>
-            <h1 className="text-[3.4vmin] font-extrabold leading-tight">{dados.titulo}</h1>
+            <p className="text-[1.4vmin] font-bold uppercase tracking-[0.3em]" style={{ color: t.cabecalhoSub }}>
+              Transparência
+            </p>
+            <h1 className="text-[3.2vmin] font-extrabold leading-tight">{dados.titulo}</h1>
           </div>
         </div>
-        <p className="text-right text-[1.6vmin] font-semibold text-blue-100 leading-snug">
+        <p className="text-right text-[1.5vmin] font-semibold leading-snug" style={{ color: t.cabecalhoSub }}>
           A sua voz faz a diferença 💙
           <br />
-          <span className="text-[1.3vmin] font-normal">
+          <span className="text-[1.2vmin] font-normal">
             últimos {dados.janelaDias} dias · atualizado {tempoRelativo(dados.atualizadoEm)}
           </span>
         </p>
       </header>
 
-      <Esteira elogios={dados.elogios} />
+      <Esteira elogios={dados.elogios} escuro={dados.tema === 'escuro'} />
 
-      <div className="flex-1 flex flex-col gap-[3vmin] p-[4vmin]">
+      <div className="flex min-h-0 flex-1 flex-col gap-[2.5vmin] p-[3vmin]">
         {dados.amostraPequena && (
-          <p className="rounded-2xl bg-white border border-blue-100 p-[2vmin] text-[2vmin] text-slate-600 shadow-sm">
+          <p className="shrink-0 rounded-2xl border p-[1.6vmin] text-[1.8vmin]" style={{ background: 'var(--card)', borderColor: 'var(--borda)', color: 'var(--muted)' }}>
             Estamos começando a ouvir você. Os primeiros resultados aparecem aqui em breve.
           </p>
         )}
 
         {/* três indicadores */}
-        <div className="grid grid-cols-3 gap-[3vmin]">
+        <div className="grid shrink-0 grid-cols-3 gap-[2.5vmin]">
           <Indicador icone="✓" cor="#22c55e" valor={pct(i.respondidasPct)} rotulo="Respondidas" />
           <Indicador icone="⏱" cor={AZUL} valor={pct(i.noPrazoPct)} rotulo="No prazo" />
           <Indicador icone="📅" cor="#8b5cf6" valor={duracao(i.tempoMedioRespostaHoras)} rotulo="Resposta média" />
         </div>
 
         {/* três painéis */}
-        <div className="grid flex-1 grid-cols-3 gap-[3vmin]">
+        <div className="grid min-h-0 flex-1 grid-cols-3 gap-[2.5vmin]">
           <Painel titulo="Manifestações por período">
             <Barras serie={dados.porPeriodo} />
           </Painel>
@@ -112,12 +152,12 @@ function Board({ dados }: { dados: MuralDados }) {
           <Painel titulo="Por teor">
             <div className="flex h-full items-center justify-center gap-[3vmin]">
               <Rosca fatias={dados.distribuicao} />
-              <ul className="flex flex-col gap-[1.8vmin]">
+              <ul className="flex flex-col gap-[1.6vmin]">
                 {dados.distribuicao.map((f) => (
-                  <li key={f.chave} className="flex items-center gap-[1.3vmin] text-[2vmin]">
-                    <span className="h-[1.8vmin] w-[1.8vmin] rounded-full" style={{ background: COR_TEOR[f.chave] }} />
+                  <li key={f.chave} className="flex items-center gap-[1.2vmin] text-[1.9vmin]">
+                    <span className="h-[1.7vmin] w-[1.7vmin] rounded-full" style={{ background: COR_TEOR[f.chave] }} />
                     <b className="tabular-nums">{f.pct}%</b>
-                    <span className="text-slate-500">{ROTULO_TEOR[f.chave]}</span>
+                    <span style={{ color: 'var(--muted)' }}>{ROTULO_TEOR[f.chave]}</span>
                   </li>
                 ))}
               </ul>
@@ -130,7 +170,7 @@ function Board({ dados }: { dados: MuralDados }) {
         </div>
       </div>
 
-      <Convite />
+      <Convite bg={t.conviteBg} borda={t.conviteBorda} />
     </div>
   );
 }
@@ -139,16 +179,21 @@ function Board({ dados }: { dados: MuralDados }) {
 
 function Indicador({ icone, cor, valor, rotulo }: { icone: string; cor: string; valor: string; rotulo: string }) {
   return (
-    <div className="flex items-center gap-[3vmin] rounded-2xl bg-white p-[3vmin] shadow-sm border border-blue-50">
+    <div
+      className="flex items-center gap-[2.5vmin] rounded-2xl border p-[2.5vmin] shadow-sm"
+      style={{ background: 'var(--card)', borderColor: 'var(--borda)' }}
+    >
       <span
-        className="flex h-[9vmin] w-[9vmin] shrink-0 items-center justify-center rounded-full text-[4vmin] font-bold"
-        style={{ background: `${cor}1f`, color: cor }}
+        className="flex h-[8vmin] w-[8vmin] shrink-0 items-center justify-center rounded-full text-[3.6vmin] font-bold"
+        style={{ background: `${cor}22`, color: cor }}
       >
         {icone}
       </span>
       <div>
-        <p className="text-[6vmin] font-extrabold leading-none tabular-nums text-slate-900">{valor}</p>
-        <p className="text-[1.8vmin] font-bold uppercase tracking-wide text-slate-400">{rotulo}</p>
+        <p className="text-[5.4vmin] font-extrabold leading-none tabular-nums">{valor}</p>
+        <p className="text-[1.7vmin] font-bold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          {rotulo}
+        </p>
       </div>
     </div>
   );
@@ -156,30 +201,61 @@ function Indicador({ icone, cor, valor, rotulo }: { icone: string; cor: string; 
 
 function Painel({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col rounded-2xl bg-white p-[3vmin] shadow-sm border border-blue-50">
-      <p className="text-[1.7vmin] font-extrabold uppercase tracking-widest text-slate-400">{titulo}</p>
-      <div className="mt-[2vmin] flex-1">{children}</div>
+    <div
+      className="flex min-h-0 flex-col rounded-2xl border p-[2.5vmin] shadow-sm"
+      style={{ background: 'var(--card)', borderColor: 'var(--borda)' }}
+    >
+      <p className="shrink-0 text-[1.6vmin] font-extrabold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
+        {titulo}
+      </p>
+      <div className="mt-[1.8vmin] min-h-0 flex-1">{children}</div>
     </div>
   );
 }
 
 function Barras({ serie }: { serie: MuralDados['porPeriodo'] }) {
   const max = Math.max(1, ...serie.map((s) => s.total));
+  // No máximo ~10 barras: junta semanas de 2 em 2 se vier muita coisa.
+  const dados = serie.length > 10 ? juntarPares(serie) : serie;
 
   return (
-    <div className="flex h-full items-end gap-[0.8vmin]">
-      {serie.map((s, n) => (
-        <div key={n} className="flex flex-1 flex-col items-center justify-end gap-[0.6vmin]">
-          <div
-            className="w-full rounded-t"
-            style={{ height: `${(s.total / max) * 100}%`, minHeight: s.total ? '4px' : 0, background: AZUL }}
-            title={`${s.rotulo}: ${s.total}`}
-          />
-          {n % 2 === 0 && <span className="text-[1.1vmin] text-slate-400">{s.rotulo}</span>}
-        </div>
-      ))}
+    <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 items-end gap-[1vmin]">
+        {dados.map((s, n) => (
+          <div key={n} className="flex h-full flex-1 flex-col items-center justify-end gap-[0.6vmin]">
+            <span className="text-[1.4vmin] font-bold tabular-nums" style={{ color: 'var(--ink)' }}>
+              {s.total}
+            </span>
+            <div
+              className="w-full rounded-t-md"
+              style={{
+                height: `${Math.max(6, (s.total / max) * 100)}%`,
+                background: `linear-gradient(180deg, ${AZUL}, #60a5fa)`,
+              }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-[1vmin] flex shrink-0 gap-[1vmin]">
+        {dados.map((s, n) => (
+          <span key={n} className="flex-1 text-center text-[1.2vmin]" style={{ color: 'var(--muted)' }}>
+            {n % 2 === 0 ? s.rotulo : ''}
+          </span>
+        ))}
+      </div>
     </div>
   );
+}
+
+function juntarPares(serie: MuralDados['porPeriodo']): MuralDados['porPeriodo'] {
+  const out: MuralDados['porPeriodo'] = [];
+  for (let i = 0; i < serie.length; i += 2) {
+    const a = serie[i];
+    const b = serie[i + 1];
+    out.push({ rotulo: a.rotulo, total: a.total + (b?.total ?? 0) });
+  }
+
+  return out;
 }
 
 function Rosca({ fatias }: { fatias: MuralDados['distribuicao'] }) {
@@ -188,8 +264,8 @@ function Rosca({ fatias }: { fatias: MuralDados['distribuicao'] }) {
   let acc = 0;
 
   return (
-    <svg viewBox="0 0 100 100" className="h-[20vmin] w-[20vmin] -rotate-90">
-      <circle cx="50" cy="50" r={r} fill="none" stroke="#eef2f7" strokeWidth="16" />
+    <svg viewBox="0 0 100 100" className="h-[19vmin] w-[19vmin] -rotate-90">
+      <circle cx="50" cy="50" r={r} fill="none" stroke="var(--trilho)" strokeWidth="16" />
       {fatias.map((f) => {
         const len = (f.pct / 100) * circ;
         const el = (
@@ -220,28 +296,28 @@ function Sentimento({ clima }: { clima: MuralDados['clima'] }) {
 
   return (
     <div className="flex h-full items-center justify-center gap-[3vmin]">
-      <span className="text-[13vmin] leading-none" style={{ filter: `drop-shadow(0 4px 8px ${cor}44)` }}>
+      <span className="text-[12vmin] leading-none" style={{ filter: `drop-shadow(0 4px 10px ${cor}55)` }}>
         {rosto}
       </span>
-      <ul className="flex flex-col gap-[2vmin] text-[2.3vmin]">
-        <li className="flex items-center gap-[1.4vmin]">
-          <span className="h-[1.8vmin] w-[1.8vmin] rounded-full bg-emerald-500" />
-          <b className="tabular-nums">{clima.positivoPct ?? 0}%</b> <span className="text-slate-500">Positivo</span>
+      <ul className="flex flex-col gap-[1.8vmin] text-[2.1vmin]">
+        <li className="flex items-center gap-[1.3vmin]">
+          <span className="h-[1.7vmin] w-[1.7vmin] rounded-full bg-emerald-500" />
+          <b className="tabular-nums">{clima.positivoPct ?? 0}%</b> <span style={{ color: 'var(--muted)' }}>Positivo</span>
         </li>
-        <li className="flex items-center gap-[1.4vmin]">
-          <span className="h-[1.8vmin] w-[1.8vmin] rounded-full bg-slate-400" />
-          <b className="tabular-nums">{clima.neutroPct ?? 0}%</b> <span className="text-slate-500">Neutro</span>
+        <li className="flex items-center gap-[1.3vmin]">
+          <span className="h-[1.7vmin] w-[1.7vmin] rounded-full bg-slate-400" />
+          <b className="tabular-nums">{clima.neutroPct ?? 0}%</b> <span style={{ color: 'var(--muted)' }}>Neutro</span>
         </li>
-        <li className="flex items-center gap-[1.4vmin]">
-          <span className="h-[1.8vmin] w-[1.8vmin] rounded-full bg-amber-500" />
-          <b className="tabular-nums">{clima.atentoPct ?? 0}%</b> <span className="text-slate-500">Negativo</span>
+        <li className="flex items-center gap-[1.3vmin]">
+          <span className="h-[1.7vmin] w-[1.7vmin] rounded-full bg-amber-500" />
+          <b className="tabular-nums">{clima.atentoPct ?? 0}%</b> <span style={{ color: 'var(--muted)' }}>Negativo</span>
         </li>
       </ul>
     </div>
   );
 }
 
-function Esteira({ elogios }: { elogios: MuralDados['elogios'] }) {
+function Esteira({ elogios, escuro }: { elogios: MuralDados['elogios']; escuro: boolean }) {
   if (elogios.length === 0) return null;
 
   let base = [...elogios];
@@ -250,20 +326,20 @@ function Esteira({ elogios }: { elogios: MuralDados['elogios'] }) {
   const dur = base.length * 8;
 
   return (
-    <div className="flex items-stretch border-b border-blue-100 bg-white">
-      <span className="flex shrink-0 items-center bg-blue-600 px-[3vmin] py-[1.4vmin] text-[1.4vmin] font-extrabold uppercase tracking-widest text-white">
+    <div className="flex shrink-0 items-stretch border-b" style={{ background: 'var(--card)', borderColor: 'var(--borda)' }}>
+      <span className="flex shrink-0 items-center bg-blue-600 px-[3vmin] py-[1.2vmin] text-[1.3vmin] font-extrabold uppercase tracking-widest text-white">
         O que dizem de nós
       </span>
       <div className="flex flex-1 items-center overflow-hidden">
         <div
-          className="flex shrink-0 items-center gap-[6vmin] whitespace-nowrap pl-[4vmin] text-[2vmin] text-slate-600"
-          style={{ animation: `desliza ${dur}s linear infinite` }}
+          className="flex shrink-0 items-center gap-[6vmin] whitespace-nowrap pl-[4vmin] text-[1.9vmin]"
+          style={{ animation: `desliza ${dur}s linear infinite`, color: escuro ? '#c7d2e4' : '#475569' }}
         >
           {fila.map((e, n) => (
             <span key={n} className="flex shrink-0 items-baseline gap-[1.2vmin]">
-              <span className="text-blue-500">“</span>
+              <span className="text-blue-400">“</span>
               <span>{e.texto}</span>
-              <span className="text-[1.4vmin] text-slate-400">
+              <span className="text-[1.3vmin]" style={{ color: 'var(--muted)' }}>
                 {[e.unidade, formatarData(e.quando)].filter(Boolean).join(' · ')}
               </span>
             </span>
@@ -275,17 +351,17 @@ function Esteira({ elogios }: { elogios: MuralDados['elogios'] }) {
   );
 }
 
-function Convite() {
+function Convite({ bg, borda }: { bg: string; borda: string }) {
   return (
-    <div className="flex items-center gap-[3vmin] border-t border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50 px-[4vmin] py-[2.2vmin]">
+    <div className="flex shrink-0 items-center gap-[3vmin] border-t px-[4vmin] py-[1.8vmin]" style={{ background: bg, borderColor: borda }}>
       <Mascote />
       <div>
-        <p className="text-[3vmin] font-extrabold leading-tight text-slate-900">A sua opinião muda este lugar</p>
-        <p className="text-[2vmin] text-slate-600">
+        <p className="text-[2.8vmin] font-extrabold leading-tight">A sua opinião muda este lugar</p>
+        <p className="text-[1.9vmin]" style={{ color: 'var(--muted)' }}>
           Use o totem aqui na recepção e registre a sua manifestação — leva menos de 1 minuto, é só falar.
         </p>
       </div>
-      <span className="ml-auto shrink-0 animate-[balanca_2.5s_ease-in-out_infinite] text-[5vmin]">👉</span>
+      <span className="ml-auto shrink-0 animate-[balanca_2.5s_ease-in-out_infinite] text-[4.5vmin]">👉</span>
       <style>{`@keyframes balanca{0%,100%{transform:translateX(0)}50%{transform:translateX(1vmin)}}`}</style>
     </div>
   );
@@ -293,7 +369,7 @@ function Convite() {
 
 function Mascote() {
   return (
-    <svg viewBox="0 0 100 100" className="h-[11vmin] w-[11vmin] shrink-0 animate-[flutua_4s_ease-in-out_infinite]">
+    <svg viewBox="0 0 100 100" className="h-[10vmin] w-[10vmin] shrink-0 animate-[flutua_4s_ease-in-out_infinite]">
       <circle cx="50" cy="50" r="46" fill="#22c55e" />
       <circle cx="37" cy="43" r="5.5" fill="#0f172a" />
       <circle cx="63" cy="43" r="5.5" fill="#0f172a" />
@@ -306,11 +382,7 @@ function Mascote() {
 }
 
 function Aviso({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-[#eef4fb] text-slate-500 flex items-center justify-center text-[3vmin]">
-      {children}
-    </div>
-  );
+  return <div className="flex h-screen items-center justify-center bg-[#eef4fb] text-[3vmin] text-slate-500">{children}</div>;
 }
 
 /* ---------------------------------------------------------------- helpers */
