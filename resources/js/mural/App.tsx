@@ -96,20 +96,20 @@ function Board({ dados }: { dados: MuralDados }) {
         }}
       />
 
-      <Esteira elogios={dados.elogios} />
-
       <div className="relative flex-1 flex flex-col p-[3.5vmin] gap-[3vmin]">
         <header className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-[1.5vmin] font-bold uppercase tracking-[0.35em] text-emerald-300">Transparência</p>
-            <h1 className="text-[4vmin] font-extrabold leading-tight">{dados.titulo}</h1>
+            <p className="text-[1.7vmin] font-bold uppercase tracking-[0.35em] text-emerald-300">Transparência</p>
+            <h1 className="text-[5vmin] font-extrabold leading-tight">{dados.titulo}</h1>
           </div>
-          <p className="text-[1.4vmin] text-slate-400 text-right leading-relaxed">
+          <p className="text-[1.7vmin] text-slate-400 text-right leading-relaxed">
             Últimos {dados.janelaDias} dias
             <br />
             atualizado {tempoRelativo(dados.atualizadoEm)}
           </p>
         </header>
+
+        <Esteira elogios={dados.elogios} />
 
         {dados.amostraPequena && (
           <p className="rounded-2xl bg-slate-800/70 border border-slate-700 p-[2vmin] text-[1.9vmin] text-slate-200">
@@ -148,15 +148,15 @@ function Board({ dados }: { dados: MuralDados }) {
 /** Faixa de incentivo no rodapé - o "agora é a sua vez" que espelha a esteira de elogios no topo. */
 function Convite() {
   return (
-    <div className="relative z-10 flex items-center gap-[3vmin] border-t border-emerald-800/50 bg-gradient-to-r from-emerald-900/50 to-sky-900/40 px-[4vmin] py-[2vmin]">
+    <div className="relative z-10 flex items-center gap-[3.5vmin] border-t border-emerald-800/50 bg-gradient-to-r from-emerald-900/50 to-sky-900/40 px-[4vmin] py-[2.5vmin]">
       <Mascote />
       <div>
-        <p className="text-[2.6vmin] font-extrabold leading-tight">A sua opinião muda este lugar</p>
-        <p className="text-[1.8vmin] text-slate-300">
+        <p className="text-[3.4vmin] font-extrabold leading-tight">A sua opinião muda este lugar</p>
+        <p className="text-[2.2vmin] text-slate-200">
           Use o totem aqui na recepção e registre a sua manifestação — leva menos de 1 minuto, é só falar.
         </p>
       </div>
-      <span className="ml-auto shrink-0 animate-[balanca_2.5s_ease-in-out_infinite] text-[4vmin]">👉</span>
+      <span className="ml-auto shrink-0 animate-[balanca_2.5s_ease-in-out_infinite] text-[5vmin]">👉</span>
       <style>{`@keyframes balanca{0%,100%{transform:translateX(0)}50%{transform:translateX(1vmin)}}`}</style>
     </div>
   );
@@ -165,7 +165,7 @@ function Convite() {
 /** Rostinho amigável em SVG - sem asset externo, escala com a tela. */
 function Mascote() {
   return (
-    <svg viewBox="0 0 100 100" className="h-[10vmin] w-[10vmin] shrink-0 animate-[flutua_4s_ease-in-out_infinite]">
+    <svg viewBox="0 0 100 100" className="h-[12vmin] w-[12vmin] shrink-0 animate-[flutua_4s_ease-in-out_infinite]">
       <circle cx="50" cy="50" r="46" fill="#34d399" />
       <circle cx="50" cy="50" r="46" fill="none" stroke="#0f766e" strokeOpacity="0.35" strokeWidth="3" />
       <circle cx="37" cy="43" r="5.5" fill="#0f172a" />
@@ -205,11 +205,11 @@ function CenaIndicadores({ dados }: { dados: MuralDados }) {
       {cards.map((c, n) => (
         <div
           key={c.titulo}
-          className="rounded-3xl bg-slate-800/60 border border-slate-700/70 p-[3vmin] flex items-center gap-[3vmin] animate-[surge_0.7s_ease_backwards]"
+          className="rounded-3xl bg-slate-800/60 border border-slate-700/70 p-[3.5vmin] flex items-center gap-[3.5vmin] animate-[surge_0.7s_ease_backwards]"
           style={{ animationDelay: `${n * 120}ms` }}
         >
           <Anel valor={c.valor} cor={c.cor} />
-          <p className="text-[2.1vmin] text-slate-300 leading-snug font-semibold">{c.titulo}</p>
+          <p className="text-[3.4vmin] text-slate-100 leading-tight font-extrabold">{c.titulo}</p>
         </div>
       ))}
       <style>{`@keyframes surge{from{opacity:0;transform:translateY(3vmin) scale(.97)}to{opacity:1}}`}</style>
@@ -222,16 +222,16 @@ function CenaClima({ dados }: { dados: MuralDados }) {
 
   return (
     <div className="h-full grid grid-cols-2 gap-[3vmin]">
-      <div className="rounded-3xl bg-slate-800/60 border border-slate-700/70 p-[3vmin] flex flex-col">
-        <p className="text-[1.7vmin] font-bold uppercase tracking-widest text-slate-400">O que as pessoas trazem</p>
-        <div className="flex-1 flex items-center justify-center gap-[3vmin]">
+      <div className="rounded-3xl bg-slate-800/60 border border-slate-700/70 p-[3.5vmin] flex flex-col">
+        <p className="text-[2.1vmin] font-extrabold uppercase tracking-widest text-slate-300">O que as pessoas trazem</p>
+        <div className="flex-1 flex items-center justify-center gap-[4vmin]">
           <Rosca fatias={dados.distribuicao} />
-          <ul className="flex flex-col gap-[1.6vmin]">
+          <ul className="flex flex-col gap-[2.4vmin]">
             {dados.distribuicao.map((f) => (
-              <li key={f.chave} className="flex items-center gap-[1.4vmin] text-[1.9vmin]">
-                <span className="text-[2.4vmin]">{EMOJI_TEOR[f.chave]}</span>
-                <span className="font-bold tabular-nums w-[7vmin]">{f.pct}%</span>
-                <span className="text-slate-400">{ROTULO_TEOR[f.chave]}</span>
+              <li key={f.chave} className="flex items-center gap-[1.8vmin] text-[2.8vmin]">
+                <span className="text-[3.4vmin]">{EMOJI_TEOR[f.chave]}</span>
+                <span className="font-extrabold tabular-nums w-[8vmin]">{f.pct}%</span>
+                <span className="text-slate-300">{ROTULO_TEOR[f.chave]}</span>
               </li>
             ))}
           </ul>
@@ -239,8 +239,8 @@ function CenaClima({ dados }: { dados: MuralDados }) {
       </div>
 
       <div className="flex flex-col gap-[3vmin]">
-        <div className="rounded-3xl bg-slate-800/60 border border-slate-700/70 p-[3vmin]">
-          <p className="text-[1.7vmin] font-bold uppercase tracking-widest text-slate-400">Como as pessoas chegam</p>
+        <div className="rounded-3xl bg-slate-800/60 border border-slate-700/70 p-[3.5vmin]">
+          <p className="text-[2.1vmin] font-extrabold uppercase tracking-widest text-slate-300">Como as pessoas chegam</p>
           <BarraClima clima={clima} />
         </div>
         <div className="flex-1 rounded-3xl bg-slate-800/60 border border-slate-700/70 p-[3vmin] flex flex-col justify-center gap-[2.5vmin]">
@@ -277,23 +277,23 @@ function Anel({ valor, cor }: { valor: number | null; cor: string }) {
   const circ = 2 * Math.PI * r;
 
   return (
-    <svg viewBox="0 0 100 100" className="h-[15vmin] w-[15vmin] shrink-0">
+    <svg viewBox="0 0 100 100" className="h-[19vmin] w-[19vmin] shrink-0">
       <g transform="rotate(-90 50 50)">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="#334155" strokeWidth="9" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#334155" strokeWidth="10" />
         <circle
           cx="50"
           cy="50"
           r={r}
           fill="none"
           stroke={cor}
-          strokeWidth="9"
+          strokeWidth="10"
           strokeLinecap="round"
           strokeDasharray={circ}
           strokeDashoffset={circ * (1 - pct / 100)}
           style={{ transition: 'stroke-dashoffset 0.3s linear' }}
         />
       </g>
-      <text x="50" y="50" textAnchor="middle" dominantBaseline="central" fill="#f1f5f9" fontSize="24" fontWeight="800">
+      <text x="50" y="50" textAnchor="middle" dominantBaseline="central" fill="#f1f5f9" fontSize="27" fontWeight="800">
         {valor == null ? '—' : `${pct}%`}
       </text>
     </svg>
@@ -339,16 +339,16 @@ function BarraClima({ clima }: { clima: MuralDados['clima'] }) {
   ].filter((f) => f.pct > 0);
 
   return (
-    <div className="mt-[2vmin] flex flex-col gap-[2vmin]">
-      <div className="flex h-[4vmin] w-full overflow-hidden rounded-full">
+    <div className="mt-[2.5vmin] flex flex-col gap-[2.5vmin]">
+      <div className="flex h-[5vmin] w-full overflow-hidden rounded-full">
         {faixas.map((f) => (
           <div key={f.rotulo} style={{ width: `${f.pct}%`, background: f.cor }} className="transition-all duration-700" />
         ))}
       </div>
-      <div className="flex flex-wrap gap-x-[3vmin] gap-y-[1vmin]">
+      <div className="flex flex-wrap gap-x-[4vmin] gap-y-[1vmin]">
         {faixas.map((f) => (
-          <span key={f.rotulo} className="text-[1.8vmin] text-slate-300">
-            {f.emoji} <b className="tabular-nums">{f.pct}%</b> <span className="text-slate-500">{f.rotulo}</span>
+          <span key={f.rotulo} className="text-[2.5vmin] text-slate-200">
+            {f.emoji} <b className="tabular-nums">{f.pct}%</b> <span className="text-slate-400">{f.rotulo}</span>
           </span>
         ))}
       </div>
@@ -359,10 +359,10 @@ function BarraClima({ clima }: { clima: MuralDados['clima'] }) {
 function Numeral({ numero, texto, cor }: { numero: string; texto: string; cor: string }) {
   return (
     <div>
-      <p className="text-[5.5vmin] font-extrabold leading-none tabular-nums" style={{ color: cor }}>
+      <p className="text-[6vmin] font-extrabold leading-none tabular-nums" style={{ color: cor }}>
         {numero}
       </p>
-      <p className="text-[1.8vmin] text-slate-400 mt-[0.8vmin] leading-snug">{texto}</p>
+      <p className="text-[2.4vmin] text-slate-300 mt-[1vmin] leading-snug font-semibold">{texto}</p>
     </div>
   );
 }
@@ -378,20 +378,20 @@ function Esteira({ elogios }: { elogios: MuralDados['elogios'] }) {
   const dur = base.length * 8;
 
   return (
-    <div className="relative z-10 flex items-stretch border-b border-slate-700/60 bg-slate-800/50 backdrop-blur">
-      <span className="flex shrink-0 items-center bg-slate-800 px-[3vmin] py-[1.6vmin] text-[1.4vmin] font-bold uppercase tracking-widest text-emerald-300">
+    <div className="relative z-10 -mx-[3.5vmin] flex items-stretch border-y border-slate-700/60 bg-slate-800/60 backdrop-blur">
+      <span className="flex shrink-0 items-center bg-emerald-900/70 px-[3vmin] py-[2vmin] text-[1.9vmin] font-extrabold uppercase tracking-widest text-emerald-200">
         O que dizem de nós
       </span>
       <div className="flex flex-1 items-center overflow-hidden">
         <div
-          className="flex shrink-0 items-center gap-[5vmin] whitespace-nowrap pl-[3vmin] text-[1.9vmin]"
+          className="flex shrink-0 items-center gap-[6vmin] whitespace-nowrap pl-[4vmin] text-[3vmin]"
           style={{ animation: `desliza ${dur}s linear infinite` }}
         >
           {fila.map((e, n) => (
-            <span key={n} className="flex shrink-0 items-baseline gap-[1.4vmin]">
-              <span className="text-emerald-300">“</span>
+            <span key={n} className="flex shrink-0 items-baseline gap-[1.6vmin]">
+              <span className="text-[3.4vmin] text-emerald-300">“</span>
               <span>{e.texto}</span>
-              <span className="text-[1.4vmin] text-slate-500">
+              <span className="text-[1.9vmin] text-slate-500">
                 {[e.unidade, formatarData(e.quando)].filter(Boolean).join(' · ')}
               </span>
             </span>
