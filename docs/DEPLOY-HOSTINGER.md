@@ -136,6 +136,43 @@ Registro do que realmente aconteceu em cada atualização de produção — serv
 pra uma sessão nova não repetir passo já feito, nem se assustar com um aviso
 já conhecido.
 
+### 2026-09-06 (tarde) — chave da Gemini fora de sincronia (NÃO era o microfone)
+
+Sintoma: no totem em produção o áudio gravava e subia (WAV real, ~600 KB,
+visível em `/admin/logs`) mas dava `503 AI_UNAVAILABLE`. No log do servidor:
+`GeminiAiService: erro não-recuperável ... status 401 ... "Expected OAuth 2
+access token, login cookie or other valid authentication credential"`.
+
+Causa: o `.env` de produção tinha uma chave `GEMINI_API_KEY` **antiga**,
+diferente da local. O deploy nunca sobe `.env` (excluído do pacote), então
+produção ficou com a chave de quando foi configurada à mão. A mesma chave
+local (`AQ.Ab8RN6...`) respondia 200; a de produção, 401.
+
+Notas que ficaram claras:
+- As chaves `AQ.` são o formato atual (auth keys, ligadas a service account).
+  **Não expiram.** As chaves padrão `AIza` passam a ser rejeitadas pelo
+  Google a partir de setembro/2026 — não migrar de volta pra `AIza`.
+- 401 "Expected OAuth 2 access token" da Gemini = string da chave não é
+  reconhecida (chave errada/revogada), não é problema de restrição de IP
+  (isso daria 403 `API_KEY_*_BLOCKED`).
+
+Correção (rodar do terminal do dev — o classificador do Claude Code bloqueia
+escrever credencial em host remoto):
+```bash
+ssh -i ~/.ssh/id_ed25519_hostinger_totem -p 65002 u928337956@82.25.73.58 \
+  "cd domains/prinatus.com.br/totem_app && cp .env .env.bak-key && \
+   sed -i 's#^GEMINI_API_KEY=.*#GEMINI_API_KEY=<chave AQ. que funciona>#' .env && \
+   php artisan config:clear && php artisan config:cache"
+```
+No PowerShell, NÃO use `$(date ...)` no comando remoto — o PowerShell
+avalia o `$(...)` localmente antes de passar pro ssh. Backup com nome fixo.
+
+Verificado: chamada real à Gemini a partir do servidor da Hostinger via
+`php artisan tinker --execute` → HTTP 200.
+
+**Ação recorrente:** sempre que a chave da Gemini mudar, atualizar o `.env`
+de produção também — os dois ambientes têm `.env` independentes.
+
 ### 2026-09-06 (aplicado por SSH) — `totem-2026-09-06-1022.zip` + hotfix
 
 Aplicado direto por SSH desta máquina (deploy.ps1 gerou, deploy manual via
@@ -321,8 +358,11 @@ QUEUE_CONNECTION=database
 CACHE_STORE=database
 SESSION_DRIVER=database
 
-# IA: a chave fica SÓ no servidor (aistudio.google.com/apikey)
-GEMINI_API_KEY=<sua chave>
+# IA: a chave fica SÓ no servidor (aistudio.google.com/apikey).
+# Use o formato AQ. (auth key) - NÃO expira. AIza (chave padrão) é rejeitada
+# pelo Google a partir de set/2026. Este .env é independente do .env local:
+# ao trocar a chave, atualizar OS DOIS (ver "Log de deploys" 2026-09-06 tarde).
+GEMINI_API_KEY=<sua chave AQ.>
 GEMINI_TEXT_MODEL=gemini-flash-lite-latest
 GEMINI_TTS_MODEL=gemini-2.5-flash-preview-tts
 
