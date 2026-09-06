@@ -65,6 +65,17 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Erros vindos do NAVEGADOR do totem (kiosk) - separados do log do
+        // servidor pra não afogar um no outro. Ver App\Http\Controllers\Api        // ClientErrorController e a tela /admin/logs. `days` curto: é
+        // diagnóstico de campo, não auditoria.
+        'kiosk' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/kiosk.log'),
+            'level' => 'debug',
+            'days' => 7,
+            'replace_placeholders' => true,
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),

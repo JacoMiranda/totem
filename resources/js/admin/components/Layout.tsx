@@ -41,6 +41,11 @@ export function Layout({ children }: { children: ReactNode }) {
                 Dispositivos
               </NavLink>
             )}
+            {temPapelMinimo(user?.role, 'admin') && (
+              <NavLink to="/logs" className={linkClass}>
+                Logs
+              </NavLink>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">

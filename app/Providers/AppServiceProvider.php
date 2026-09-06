@@ -48,5 +48,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('parear-dispositivo', fn (User $u) => $u->temPapelMinimo(UserRole::Atendente));
         Gate::define('gerenciar-usuarios', fn (User $u) => $u->role === UserRole::Admin);
         Gate::define('gerenciar-notificacoes', fn (User $u) => $u->role === UserRole::Admin);
+        Gate::define('ver-logs', fn (User $u) => $u->role === UserRole::Admin);
     }
 }

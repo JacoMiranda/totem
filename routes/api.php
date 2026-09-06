@@ -4,7 +4,9 @@ use App\Http\Controllers\Api\Admin\ManifestationController as AdminManifestation
 use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\ClientErrorController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\LogController;
 use App\Http\Controllers\Api\ManifestationController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPrefController;
@@ -42,6 +44,8 @@ Route::prefix('v1')->group(function () {
     // Totem (device key).
     Route::middleware('device.key')->group(function () {
         Route::post('/manifestations', [ManifestationController::class, 'store']);
+        // Erros do navegador do totem -> canal `kiosk` -> /admin/logs.
+        Route::post('/client-errors', [ClientErrorController::class, 'store'])->middleware('throttle:30,1');
         Route::post('/manifestations/{manifestation}/audio', [ManifestationController::class, 'uploadAudio'])->whereUuid('manifestation');
         // Constrangido ao formato do protocolo (OUV-AAAAMM-NNNNNN) pra não
         // colidir com GET /manifestations/{manifestation} (admin, por uuid)
@@ -96,6 +100,8 @@ Route::prefix('v1')->group(function () {
 
         // Notificações (log e teste: admin; preferências: qualquer membro
         // autenticado edita só as próprias, ver NotificationPrefController).
+        Route::get('/logs', [LogController::class, 'index']);
+
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::post('/notifications/test', [NotificationController::class, 'test']);
         Route::get('/notification-prefs', [NotificationPrefController::class, 'index']);

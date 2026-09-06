@@ -37,3 +37,21 @@ export function diagnosticoNavegador(): string {
     `ditado=${typeof (w.SpeechRecognition ?? w.webkitSpeechRecognition)}`,
   ].join(' · ');
 }
+
+/**
+ * true em aparelho com toque como ponteiro principal (celular/tablet).
+ *
+ * Usado para NÃO rodar o reconhecimento de fala (SpeechRecognition) ao
+ * mesmo tempo que a gravação (MediaRecorder): no Chrome do Android o
+ * microfone é EXCLUSIVO - com o MediaRecorder segurando o mic, o
+ * SpeechRecognition inicia, falha e reinicia em loop (o ícone de mic
+ * piscando no topo da tela) sem nunca capturar nada. No desktop os dois
+ * dividem o mic sem problema.
+ */
+export function aparelhoDeToque(): boolean {
+  try {
+    return window.matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0;
+  } catch {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  }
+}

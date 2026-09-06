@@ -1,26 +1,56 @@
 /**
- * Converte o Blob gravado (Chrome grava `audio/webm;codecs=opus`, que a API
- * Gemini NÃO aceita - ela quer wav/mp3/ogg/flac/aac) para WAV PCM 16-bit
- * mono 16 kHz. 16 kHz basta pra fala e mantém o upload pequeno. É também a
- * taxa que o Vosk usa, então a mesma decodificação serve pros dois.
+ * Converte o Blob gravado para **WAV PCM 16-bit mono 16 kHz** antes de
+ * mandar pra Gemini. Chrome grava `audio/webm;codecs=opus`, que a Gemini
+ * NÃO aceita (ela quer wav/mp3/ogg/flac/aac). 16 kHz basta pra fala e
+ * mantém o upload pequeno.
  *
- * Se a decodificação falhar (formato exótico), devolve o blob original -
- * o backend ainda tenta, e os tiers de fallback cobrem o resto.
+ * Se `decodeAudioData` falhar (aconteceu com webm de alguns Android), NÃO
+ * adianta mandar o webm rotulado de .wav pro servidor - a Gemini rejeita
+ * do mesmo jeito e o erro fica confuso. Devolvemos `{ ok: false }` e quem
+ * chama trata como "não deu pra transcrever este áudio".
  */
 
 const TAXA = 16000;
 
-export async function audioParaWav(blob: Blob): Promise<{ blob: Blob; mimeType: string }> {
+export type ResultadoWav =
+  | { ok: true; blob: Blob; nomeArquivo: 'gravacao.wav' }
+  | { ok: false; motivo: string };
+
+export async function audioParaWav(blob: Blob): Promise<ResultadoWav> {
+  if (!blob || blob.size === 0) {
+    return { ok: false, motivo: 'áudio vazio' };
+  }
+
+  const Ctx =
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) {
+    return { ok: false, motivo: 'sem AudioContext neste navegador' };
+  }
+
+  let ctx: AudioContext | null = null;
   try {
-    const ctx = new AudioContext();
-    const decodificado = await ctx.decodeAudioData(await blob.arrayBuffer());
-    await ctx.close();
+    ctx = new Ctx();
+    const bytes = await blob.arrayBuffer();
+    // Forma com callbacks: Safari antigo não devolve Promise de decodeAudioData.
+    const decodificado = await new Promise<AudioBuffer>((resolve, reject) => {
+      ctx!.decodeAudioData(bytes, resolve, reject);
+    });
 
     const pcm = await reamostrarMono(decodificado, TAXA);
+    if (pcm.length === 0) {
+      return { ok: false, motivo: 'áudio sem amostras' };
+    }
 
-    return { blob: new Blob([codificarWav(pcm, TAXA)], { type: 'audio/wav' }), mimeType: 'audio/wav' };
-  } catch {
-    return { blob, mimeType: blob.type || 'audio/webm' };
+    return {
+      ok: true,
+      blob: new Blob([codificarWav(pcm, TAXA)], { type: 'audio/wav' }),
+      nomeArquivo: 'gravacao.wav',
+    };
+  } catch (e) {
+    return { ok: false, motivo: `falha ao decodificar (${(e as Error)?.name ?? 'erro'})` };
+  } finally {
+    await ctx?.close().catch(() => {});
   }
 }
 
@@ -29,7 +59,10 @@ async function reamostrarMono(buffer: AudioBuffer, taxa: number): Promise<Float3
     return buffer.getChannelData(0);
   }
 
-  const offline = new OfflineAudioContext(1, Math.ceil(buffer.duration * taxa), taxa);
+  const Offline =
+    window.OfflineAudioContext ??
+    (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext }).webkitOfflineAudioContext;
+  const offline = new Offline(1, Math.ceil(buffer.duration * taxa), taxa);
   const fonte = offline.createBufferSource();
   fonte.buffer = buffer;
   fonte.connect(offline.destination);

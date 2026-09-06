@@ -2,6 +2,7 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Devices } from './pages/Devices';
+import { Logs } from './pages/Logs';
 import { Login } from './pages/Login';
 import { ManifestationDetail } from './pages/ManifestationDetail';
 import { ManifestationsList } from './pages/ManifestationsList';
@@ -44,6 +45,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Relatorios />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/logs"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Logs />
               </Layout>
             </ProtectedRoute>
           }

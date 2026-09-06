@@ -1,18 +1,25 @@
 import { useEffect, useState } from 'react';
 import { fallbackLocalAnalysis } from '../../shared';
-import { api } from '../lib/api';
+import { api, isNetworkError } from '../lib/api';
 import { audioParaWav } from '../lib/audioParaWav';
-import { diagnosticoNavegador, navegadorDetectado } from '../lib/diagnostico';
+import { aparelhoDeToque, diagnosticoNavegador, navegadorDetectado } from '../lib/diagnostico';
 import { IA_LOCAL_APENAS } from '../lib/ia';
 import { transcreverAudioOffline } from '../lib/offline/vosk';
 import { useReconhecimentoFala } from '../lib/reconhecimentoFala';
 import { useAudioRecorder } from '../lib/useAudioRecorder';
+import { reportarErro } from '../lib/reportarErro';
 import { falarFrase, pararFala } from '../lib/vozKiosk';
 import { useJourneyStore } from '../store/journeyStore';
 
 /**
- * Etapa 2 (Relato) - o cidadão fala (ditado em tempo real, Web Speech API
- * nativa) e/ou escreve. A MediaRecorder também grava o áudio pra arquivo.
+ * Etapa 2 (Relato). O cidadão fala (a MediaRecorder grava) e/ou escreve.
+ *
+ * Ditado ao vivo (Web Speech API): SÓ no desktop. No Chrome do Android o
+ * microfone é exclusivo - rodar SpeechRecognition junto com a MediaRecorder
+ * faz o reconhecimento entrar em loop de start/erro/restart sem capturar
+ * nada (o ícone de mic piscando no topo). No celular, portanto, a
+ * transcrição vem 100% do servidor (Gemini) depois de gravar.
+ *
  * Tiers de classificação (ver docs/CAMADA-OFFLINE.md):
  *   0. já tem texto (ditado ou digitado) -> classifica esse texto
  *   1. só áudio -> Gemini transcreve+classifica (pulado se IA_LOCAL_APENAS)
@@ -27,6 +34,8 @@ export function Relato() {
   const [processando, setProcessando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
+  const usarDitadoAoVivo = ditado.disponivel && !aparelhoDeToque();
+
   useEffect(() => {
     void falarFrase('relato-instrucao');
 
@@ -34,8 +43,15 @@ export function Relato() {
   }, []);
 
   useEffect(() => {
-    if (erroMicrofone) void falarFrase('relato-sem-microfone');
+    if (erroMicrofone) {
+      void falarFrase('relato-sem-microfone');
+      reportarErro('microfone', erroMicrofone);
+    }
   }, [erroMicrofone]);
+
+  useEffect(() => {
+    if (ditado.erro) reportarErro('ditado', ditado.erro);
+  }, [ditado.erro]);
 
   /** Classifica um texto já conhecido. Devolve true se conseguiu seguir. */
   const analisarTexto = async (texto: string): Promise<boolean> => {
@@ -61,17 +77,35 @@ export function Relato() {
   /** Transcreve + classifica o áudio gravado. Devolve true se conseguiu seguir. */
   const processarAudio = async (blob: Blob): Promise<boolean> => {
     // Tier 1: Gemini (transcrição + classificação de uma vez).
+    const wav = await audioParaWav(blob); // Chrome grava webm/opus, que a Gemini rejeita
+    if (!wav.ok) {
+      setAviso(`Não consegui preparar o áudio (${wav.motivo}). Escreva o seu relato no campo abaixo.`);
+      reportarErro('audio-wav', `${wav.motivo} · blob ${blob.size}b ${blob.type}`);
+
+      return false;
+    }
+
     if (!IA_LOCAL_APENAS) {
       try {
-        const wav = await audioParaWav(blob); // Chrome grava webm/opus, que a Gemini rejeita
         const form = new FormData();
-        form.append('file', wav.blob, 'gravacao.wav');
-        const { data } = await api.post('/ai/transcribe-analyze', form);
+        form.append('file', wav.blob, wav.nomeArquivo);
+        // Áudio pode levar mais que uma chamada de texto: transcrição +
+        // classificação + rede móvel. Timeout próprio, maior que o padrão.
+        const { data } = await api.post('/ai/transcribe-analyze', form, { timeout: 45_000 });
         aplicarAnalise(data);
 
         return true;
-      } catch {
-        setAviso('IA online demorou - a transcrever no próprio totem…');
+      } catch (erro) {
+        const codigo = (erro as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+        const status = (erro as { response?: { status?: number } })?.response?.status;
+        reportarErro('transcricao', `${isNetworkError(erro) ? 'rede/timeout' : `http ${status ?? '?'}`}${codigo ? ` ${codigo}` : ''} · wav ${wav.blob.size}b`);
+        setAviso(
+          isNetworkError(erro)
+            ? 'Sem conexão para transcrever agora - o áudio foi guardado, a equipe transcreve depois. Pode escrever o relato abaixo.'
+            : codigo === 'AI_UNAVAILABLE'
+              ? 'O serviço de transcrição está fora do ar no momento. O áudio foi guardado; escreva o relato abaixo.'
+              : `Não consegui transcrever o áudio${codigo ? ` (${codigo})` : ''}. Escreva o seu relato no campo abaixo.`,
+        );
       }
     }
 
@@ -86,8 +120,9 @@ export function Relato() {
       return true;
     }
 
-    // Tier 3: não deu - o áudio já está salvo pra sincronizar depois.
-    setAviso('Não consegui transcrever o áudio. Escreva o seu relato no campo abaixo, por favor.');
+    if (!aviso) {
+      setAviso('Não consegui transcrever o áudio. Escreva o seu relato no campo abaixo, por favor.');
+    }
 
     return false;
   };
@@ -95,27 +130,36 @@ export function Relato() {
   const alternarGravacao = async () => {
     if (!isRecording) {
       pararFala(); // não gravar a própria locução
-      setTranscricao(''); // ditado começa do zero
-      // Ordem importa: a gravação (getUserMedia) primeiro; iniciar o
-      // reconhecimento antes disso faz o Chrome abortá-lo por disputa de
-      // microfone.
+      if (usarDitadoAoVivo) setTranscricao(''); // ditado recomeça do zero
       await iniciar();
-      ditado.iniciar(); // transcrição ao vivo (best-effort)
+      // No celular NÃO iniciamos o reconhecimento: disputa de mic com a
+      // gravação (ver docstring). A transcrição vem do servidor ao parar.
+      if (usarDitadoAoVivo) ditado.iniciar();
 
       return;
     }
 
-    const textoFala = ditado.parar();
+    const textoFala = usarDitadoAoVivo ? ditado.parar() : '';
     const gravado = await parar();
-    if (!gravado) return;
 
-    setAudio(gravado.blob, gravado.mimeType);
+    // Sem áudio E sem texto: o cidadão só encostou no botão. Nada a fazer.
+    if (!gravado && !transcricao.trim() && !textoFala.trim()) return;
+
+    if (gravado) setAudio(gravado.blob, gravado.mimeType);
     setProcessando(true);
     void falarFrase('relato-processando');
 
     // Tier 0: o ditado (ou algo digitado) já deu texto -> só classificar.
     const texto = (textoFala || transcricao).trim();
-    const ok = texto.length > 5 ? await analisarTexto(texto) : await processarAudio(gravado.blob);
+    let ok: boolean;
+    if (texto.length > 5) {
+      ok = await analisarTexto(texto);
+    } else if (gravado) {
+      ok = await processarAudio(gravado.blob);
+    } else {
+      setAviso('Não entendi o áudio. Escreva o seu relato no campo abaixo, por favor.');
+      ok = false;
+    }
 
     setProcessando(false);
     if (ok) irPara('classificacao');
@@ -134,9 +178,9 @@ export function Relato() {
       <div className="w-full max-w-lg bg-white rounded-3xl p-8 shadow-xl flex flex-col gap-4">
         <h2 className="text-xl font-extrabold text-slate-900">Conte o que aconteceu</h2>
         <p className="text-sm text-slate-500">
-          {ditado.disponivel
+          {usarDitadoAoVivo
             ? 'Toque no microfone e fale — o texto aparece sozinho. Ou escreva abaixo.'
-            : 'Toque no microfone para gravar, ou escreva o seu relato abaixo.'}
+            : 'Toque no microfone, fale, e toque de novo para concluir. Ou escreva abaixo.'}
         </p>
 
         <button
@@ -153,29 +197,21 @@ export function Relato() {
           {processando
             ? 'A processar…'
             : isRecording
-              ? ditado.ativo
-                ? '🔴 A ouvir — pode falar. Toque para concluir.'
-                : 'A gravar — toque para concluir'
+              ? 'A gravar — toque para concluir'
               : 'Toque para falar'}
         </p>
 
-        {/* Estado do ditado sempre visível: sem isso, "não escreve nada" é
-            indistinguível de "o navegador não suporta". Mostra QUAL
-            navegador foi detectado - Firefox não implementa a Web Speech
-            API, e sem nomeá-lo a mensagem "use o Chrome" parece errada pra
-            quem acha que já está no Chrome. */}
-        <p className="text-center text-[11px] text-slate-400">
-          Ditado por voz:{' '}
-          {!ditado.disponivel
-            ? `não disponível no ${navegadorDetectado()} — use o Chrome/Edge ou escreva abaixo`
-            : ditado.ativo
-              ? 'ativo'
-              : 'pronto'}
-        </p>
-        {ditado.erro && <p className="text-center text-xs text-amber-600">{ditado.erro}</p>}
+        {usarDitadoAoVivo && (
+          <p className="text-center text-[11px] text-slate-400">
+            Ditado por voz: {ditado.ativo ? 'ativo' : 'pronto'}
+          </p>
+        )}
+        {ditado.erro && usarDitadoAoVivo && (
+          <p className="text-center text-xs text-amber-600">{ditado.erro}</p>
+        )}
         {erroMicrofone && <p className="text-center text-xs text-amber-600">{erroMicrofone}</p>}
 
-        {(ditado.erro || erroMicrofone) && (
+        {((ditado.erro && usarDitadoAoVivo) || erroMicrofone) && (
           <p className="text-center text-[10px] text-slate-400 break-words select-all">
             {diagnosticoNavegador()}
           </p>
@@ -183,7 +219,11 @@ export function Relato() {
 
         <textarea
           className="min-h-32 rounded-xl border border-slate-300 p-3 text-sm"
-          placeholder="O que você falar aparece aqui. Também pode escrever ou corrigir."
+          placeholder={
+            usarDitadoAoVivo
+              ? 'O que você falar aparece aqui. Também pode escrever ou corrigir.'
+              : 'Ou escreva aqui o seu relato…'
+          }
           value={transcricao}
           onChange={(e) => setTranscricao(e.target.value)}
         />
@@ -198,6 +238,8 @@ export function Relato() {
         >
           {processando ? 'A analisar…' : 'Continuar'}
         </button>
+
+        <p className="text-center text-[10px] text-slate-300">{navegadorDetectado()}</p>
       </div>
     </main>
   );
