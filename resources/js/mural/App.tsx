@@ -317,36 +317,68 @@ function Sentimento({ clima }: { clima: MuralDados['clima'] }) {
   );
 }
 
-function Esteira({ elogios, escuro }: { elogios: MuralDados['elogios']; escuro: boolean }) {
-  if (elogios.length === 0) return null;
+/**
+ * Carrossel de elogios: UM por vez, parado ~9s pra dar tempo de ler, com
+ * troca por fade. Muito mais legível numa TV do que texto rolando - e
+ * deixa a fonte grande em qualquer tamanho de tela.
+ */
+const TROCA_ELOGIO_MS = 9000;
 
-  let base = [...elogios];
-  while (base.length < 6) base = [...base, ...elogios];
-  const fila = [...base, ...base];
-  const dur = base.length * 8;
+function Esteira({ elogios, escuro }: { elogios: MuralDados['elogios']; escuro: boolean }) {
+  const [i, setI] = useState(0);
+
+  useEffect(() => {
+    if (elogios.length < 2) return;
+    const t = window.setInterval(() => setI((v) => (v + 1) % elogios.length), TROCA_ELOGIO_MS);
+
+    return () => window.clearInterval(t);
+  }, [elogios.length]);
+
+  if (elogios.length === 0) return null;
+  const e = elogios[i % elogios.length];
 
   return (
-    <div className="flex shrink-0 items-stretch border-b" style={{ background: 'var(--card)', borderColor: 'var(--borda)' }}>
-      <span className="flex shrink-0 items-center bg-blue-600 px-[3vmin] py-[1.2vmin] text-[1.3vmin] font-extrabold uppercase tracking-widest text-white">
-        O que dizem de nós
+    <div
+      className="flex shrink-0 items-stretch border-b"
+      style={{ background: 'var(--card)', borderColor: 'var(--borda)' }}
+    >
+      <span className="flex shrink-0 items-center bg-blue-600 px-[3vmin] text-[1.7vmin] font-extrabold uppercase tracking-widest text-white">
+        O que dizem
+        <br />
+        de nós
       </span>
-      <div className="flex flex-1 items-center overflow-hidden">
-        <div
-          className="flex shrink-0 items-center gap-[6vmin] whitespace-nowrap pl-[4vmin] text-[1.9vmin]"
-          style={{ animation: `desliza ${dur}s linear infinite`, color: escuro ? '#c7d2e4' : '#475569' }}
-        >
-          {fila.map((e, n) => (
-            <span key={n} className="flex shrink-0 items-baseline gap-[1.2vmin]">
-              <span className="text-blue-400">“</span>
-              <span>{e.texto}</span>
-              <span className="text-[1.3vmin]" style={{ color: 'var(--muted)' }}>
-                {[e.unidade, formatarData(e.quando)].filter(Boolean).join(' · ')}
-              </span>
-            </span>
-          ))}
+
+      <div className="relative flex flex-1 items-center overflow-hidden px-[4vmin] py-[2vmin]">
+        <div key={i} className="animate-[trocaElogio_0.6s_ease] w-full">
+          <p
+            className="text-[2.9vmin] font-medium leading-snug line-clamp-2"
+            style={{ color: escuro ? '#dbe6f6' : '#334155' }}
+          >
+            <span className="text-blue-400">“</span>
+            {e.texto}
+            <span className="text-blue-400">”</span>
+          </p>
+          <p className="mt-[0.8vmin] text-[1.7vmin]" style={{ color: 'var(--muted)' }}>
+            {[e.unidade, formatarData(e.quando)].filter(Boolean).join(' · ')}
+          </p>
         </div>
+
+        {elogios.length > 1 && (
+          <div className="absolute bottom-[1.2vmin] right-[4vmin] flex gap-[0.8vmin]">
+            {elogios.map((_, n) => (
+              <span
+                key={n}
+                className="h-[0.9vmin] rounded-full transition-all"
+                style={{
+                  width: n === i % elogios.length ? '3vmin' : '0.9vmin',
+                  background: n === i % elogios.length ? AZUL : 'var(--trilho)',
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
-      <style>{`@keyframes desliza{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
+      <style>{`@keyframes trocaElogio{from{opacity:0;transform:translateX(2vmin)}to{opacity:1;transform:none}}`}</style>
     </div>
   );
 }
