@@ -25,6 +25,42 @@ sobe `artisan serve` (8001) + `queue:listen` + Vite (`127.0.0.1:5173`, fixo). Se
 - **Kiosk:** http://localhost:8001/atendimento
 - **Painel admin:** http://localhost:8001/admin
 
+## Acessar do celular (mesma rede Wi-Fi)
+
+```powershell
+.\dev.ps1 -Rede
+```
+
+O script detecta o IP da máquina na LAN, sobe o `artisan serve` em `0.0.0.0`,
+aponta o Vite e o `APP_URL` para esse IP e imprime os endereços. No celular,
+use `http://<ip>:8001`.
+
+Se não conectar, o firewall do Windows está bloqueando. Num PowerShell **como
+Administrador**:
+
+```powershell
+New-NetFirewallRule -DisplayName 'Totem dev (8001/5173)' -Direction Inbound `
+  -Protocol TCP -LocalPort 8001,5173 -Action Allow -Profile Private
+```
+
+### ⚠️ Microfone e ditado não funcionam por HTTP no celular
+
+Navegadores só liberam `getUserMedia` (gravação) e `SpeechRecognition` (ditado)
+em **contexto seguro**: `https://` ou `localhost`. Um IP de rede em `http://`
+não é contexto seguro — as telas abrem e dá para navegar, mas **falar não
+funciona**, e é assim em qualquer site, não é bug do projeto.
+
+Para testar a **voz** num celular, escolha um:
+
+| Como | O que fazer |
+|---|---|
+| **Túnel HTTPS** (mais simples) | `cloudflared tunnel --url http://localhost:8001` ou `ngrok http 8001` — devolve uma URL `https://…` que funciona em qualquer aparelho, inclusive iPhone. Ajuste `APP_URL` para essa URL antes de subir o Vite. |
+| **Flag do Chrome no Android** | `chrome://flags/#unsafely-treat-insecure-origin-as-secure` → adicione `http://192.168.0.7:8001` → *Enabled* → reinicie o Chrome. Só Android/Chrome. |
+| **Certificado local** | `mkcert` + servir por HTTPS. Mais trabalhoso; vale quando virar rotina. |
+
+No **totem de verdade** isso não é problema: em produção ele roda em HTTPS, e
+em desenvolvimento na própria máquina `localhost` já é contexto seguro.
+
 ## Primeiro setup do banco
 
 ```powershell
