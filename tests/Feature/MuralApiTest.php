@@ -77,9 +77,13 @@ class MuralApiTest extends TestCase
         $r->assertJsonStructure([
             'indicadores' => ['respondidasPct', 'resolvidasPct', 'noPrazoPct', 'reclamacoesResolvidasPct'],
             'compromisso' => ['tudoNoPrazo', 'diasSemAtraso', 'diasOuvindo'],
+            'distribuicao' => [['chave', 'pct']],
+            'clima' => ['positivoPct', 'neutroPct', 'atentoPct'],
             'elogios',
         ]);
         $this->assertSame(100, $r->json('indicadores.respondidasPct'));
+        // Distribuição usa "Reclamação" (Denúncia entra somada, nunca com rótulo próprio).
+        $this->assertNotContains('Denúncia', array_column($r->json('distribuicao'), 'chave'));
     }
 
     public function test_mural_nao_expoe_volume_nem_denuncia(): void

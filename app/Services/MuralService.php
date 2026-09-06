@@ -78,8 +78,49 @@ class MuralService
                 'diasSemAtraso' => $this->diasSemAtraso($org),
                 'diasOuvindo' => $this->diasOuvindo($org),
             ],
+            // O que as pessoas trazem - % por teor (Denúncia entra em
+            // Reclamação, nunca aparece separada). Soma 100.
+            'distribuicao' => $this->distribuicao($registros),
+            // Como as pessoas chegam - sentimento agrupado em 3 faixas.
+            'clima' => [
+                'positivoPct' => $this->pct(
+                    $comSentimento->filter(fn ($m) => in_array($m->sentimento->value, ['Excelente', 'Satisfeito'], true))->count(),
+                    $comSentimento->count(),
+                ),
+                'neutroPct' => $this->pct(
+                    $comSentimento->filter(fn ($m) => $m->sentimento->value === 'Neutro')->count(),
+                    $comSentimento->count(),
+                ),
+                'atentoPct' => $this->pct(
+                    $comSentimento->filter(fn ($m) => in_array($m->sentimento->value, ['Preocupado', 'Insatisfeito'], true))->count(),
+                    $comSentimento->count(),
+                ),
+            ],
             'elogios' => $this->elogios($org),
         ];
+    }
+
+    /** @param \Illuminate\Support\Collection<int,Manifestation> $registros */
+    private function distribuicao($registros): array
+    {
+        $comTeor = $registros->filter(fn ($m) => $m->categoria !== null);
+        $total = $comTeor->count();
+        if ($total === 0) {
+            return [];
+        }
+
+        $conta = fn (array $cats) => $comTeor->filter(fn ($m) => in_array($m->categoria->value, $cats, true))->count();
+
+        return collect([
+            ['chave' => 'Elogio', 'n' => $conta(['Elogio'])],
+            ['chave' => 'Sugestão', 'n' => $conta(['Sugestão'])],
+            ['chave' => 'Dúvida', 'n' => $conta(['Dúvida'])],
+            ['chave' => 'Reclamação', 'n' => $conta(['Reclamação', 'Denúncia'])],
+        ])
+            ->filter(fn ($f) => $f['n'] > 0)
+            ->map(fn ($f) => ['chave' => $f['chave'], 'pct' => (int) round($f['n'] / $total * 100)])
+            ->values()
+            ->all();
     }
 
     /** Query base da organização, sem o escopo de tenant (aqui não há usuário logado). */
@@ -168,8 +209,10 @@ class MuralService
             ->whereNotNull('resumo')
             ->where('criado_em', '>=', CarbonImmutable::now()->subDays(120))
             ->orderByDesc('criado_em')
-            ->limit(6)
+            ->limit(40)
             ->get(['resumo', 'criado_em', 'device_id'])
+            ->unique(fn (Manifestation $m) => mb_strtolower(trim((string) $m->resumo)))
+            ->take(7)
             ->map(fn (Manifestation $m) => [
                 'texto' => $this->higienizar((string) $m->resumo),
                 'unidade' => $m->device?->unidade,

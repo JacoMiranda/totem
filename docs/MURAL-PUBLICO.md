@@ -13,12 +13,19 @@ Janela: últimos 90 dias por data do atendimento.
 | Mostra | Não mostra |
 |---|---|
 | % de manifestações **respondidas** | número absoluto de manifestações |
-| % de casos **resolvidos** | contagem de reclamações / de denúncias |
+| % de casos **resolvidos** | contagem crua de reclamações / de denúncias |
 | % respondidas **dentro do prazo** (SLA por urgência) | nomes, protocolos, qualquer dado de quem registrou |
 | % de **reclamações + denúncias já resolvidas** | a palavra "denúncia" em lugar nenhum do JSON |
 | **tempo médio** para responder | filas, backlog, o que está atrasado |
 | **dias sem atraso** (sequência) e **dias ouvindo** | |
-| **elogios recentes** (resumo higienizado, unidade, mês) | |
+| **distribuição por teor** em % (Elogio / Sugestão / Dúvida / *Reclamação* — Denúncia entra somada em Reclamação, nunca com rótulo próprio) | |
+| **clima** em 3 faixas (% tranquilas / neutras / preocupadas, a partir do sentimento) | |
+| **elogios recentes** (resumo higienizado, unidade, mês) — sem duplicatas | |
+
+A tela ainda traz um rodapé fixo de **incentivo** ("a sua opinião muda
+este lugar — use o totem") com um rostinho SVG, e uma **esteira de
+elogios** rolando no topo. Cenas se alternam a cada 14s (indicadores →
+clima/distribuição).
 
 Amostra pequena (< 5 manifestações na janela): o mural entra em modo
 "estamos começando a ouvir você" em vez de mostrar 0%.
@@ -46,9 +53,11 @@ noindex>` na página. Se vazar, o admin gera um link novo
 
 - **Front**: SPA própria em `resources/js/mural/` (entrada no
   `vite.config.ts`), servida por `GET /mural/{any?}` (blade
-  `resources/views/mural.blade.php`). Tema escuro, números grandes,
-  unidades em `vmin` pra escalar em qualquer TV. Recarrega sozinha a
-  cada 2 min e ao reganhar foco.
+  `resources/views/mural.blade.php`). Tema escuro, paleta amigável
+  (emerald/sky/violet/amber/coral, cada indicador com a sua cor),
+  números grandes em `vmin` pra escalar em qualquer TV, contadores
+  animados, cenas que alternam. Zero asset externo (o mascote é SVG
+  inline). Recarrega sozinha a cada 2 min e ao reganhar foco.
 - **API pública**: `GET /api/v1/mural/{token}` (grupo `throttle:20,1`,
   junto da consulta pública de protocolo). Resposta cacheada 120s por
   token (`Cache::remember`), invalidada quando o admin salva ou troca o

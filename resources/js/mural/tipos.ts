@@ -16,5 +16,11 @@ export interface MuralDados {
     diasSemAtraso: number;
     diasOuvindo: number;
   };
+  distribuicao: { chave: 'Elogio' | 'Sugestão' | 'Dúvida' | 'Reclamação'; pct: number }[];
+  clima: {
+    positivoPct: number | null;
+    neutroPct: number | null;
+    atentoPct: number | null;
+  };
   elogios: { texto: string; unidade: string | null; quando: string }[];
 }

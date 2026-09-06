@@ -54,6 +54,10 @@ class SemearDemo extends Command
             ['Fui muito bem recebido, o segurança até me ajudou a levar as compras até o carro.', 'Excelente', 'Baixa', ['recepção', 'cortesia', 'segurança']],
             ['O setor de hortifruti está sempre com produtos frescos, faço questão de vir aqui por isso.', 'Satisfeito', 'Baixa', ['hortifruti', 'qualidade', 'frescor']],
             ['Pedi ajuda para encontrar um item e o repositor largou o que fazia para me acompanhar.', 'Excelente', 'Baixa', ['atendimento', 'ajuda', 'equipe']],
+            ['Registrei uma reclamação semana passada e me responderam de verdade, com solução. Fiquei impressionado.', 'Excelente', 'Baixa', ['ouvidoria', 'resposta', 'solução']],
+            ['O caixa preferencial agora anda rápido e o pessoal trata os idosos com muita paciência.', 'Satisfeito', 'Baixa', ['caixa', 'preferencial', 'paciência']],
+            ['Esqueci a carteira e a gerente segurou minhas compras até eu voltar. Atendimento humano.', 'Excelente', 'Baixa', ['gerência', 'gentileza', 'atendimento']],
+            ['Os preços das ofertas batem certinho no caixa desde que criaram esse canal. Melhorou muito.', 'Satisfeito', 'Baixa', ['preço', 'oferta', 'confiança']],
         ],
         'Sugestão' => [
             ['Seria ótimo ter um caixa preferencial só para quem leva poucos itens.', 'Neutro', 'Baixa', ['caixa', 'preferencial', 'agilidade']],
@@ -261,12 +265,13 @@ class SemearDemo extends Command
         $prazo = self::PRAZO_DIAS[$urgencia] ?? 15;
         $horasNoPrazo = fn () => random_int(2, 6) + random_int(0, $prazo * 3);
 
-        // Crítica (denúncia) vence em 1 dia - nunca deixar em aberto, senão
-        // já conta como atraso e derruba a sequência do mural.
-        if ($idade < 4 && $prazo > 1) {
+        // Só fica "em aberto" quem ainda está DENTRO do prazo - senão já
+        // conta como atraso e derruba a sequência do mural. (Denúncia é
+        // Crítica, prazo 1 dia: quase nunca cai aqui.)
+        if ($idade < 4 && $idade < $prazo) {
             $status = ['Recebida', 'Recebida', 'Em triagem', 'Em análise'][random_int(0, 3)];
 
-            return [$status, null, $criadoEm->clone()->addHours(random_int(1, 30))];
+            return [$status, null, $criadoEm->clone()->addHours(random_int(1, 20))];
         }
 
         if ($idade <= 30) {
