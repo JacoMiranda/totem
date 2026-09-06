@@ -162,7 +162,7 @@ export const ARTIGOS: Artigo[] = [
     categoria: 'Totens',
     tags: ['dispositivo', 'parear', 'device key', 'abrir totem', 'kiosk'],
     corpo: [
-      { p: 'Os totens que você contratou já vêm cadastrados, nomeados a partir da sua empresa (ex.: "LuizaBrok-01-Recepção").' },
+      { p: 'Os totens que você contratou já vêm cadastrados, nomeados a partir da sua empresa (ex.: "LuizaBrok-01-Recepção"). Você só vê os totens da sua conta. (O time da plataforma vê todos, com o nome da empresa e filtro por empresa.)' },
       { passos: [
         'Na máquina que vai virar o totem, abra o painel e faça login.',
         'Vá em Dispositivos e clique em "Abrir totem" no dispositivo que essa máquina representa.',

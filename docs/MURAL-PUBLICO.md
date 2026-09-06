@@ -19,6 +19,7 @@ Janela: últimos 90 dias por data do atendimento.
 | **tempo médio** para responder | filas, backlog, o que está atrasado |
 | **dias sem atraso** (sequência) e **dias ouvindo** | |
 | **volume por semana** (barras — só o movimento do canal, não a fila) | |
+| **% de manifestações por unidade** (carrossel — troca a cada 1 min se há 2+ unidades com movimento) | |
 | **distribuição por teor** em % (Elogio / Sugestão / Dúvida / *Reclamação* — Denúncia entra somada em Reclamação, nunca com rótulo próprio) | |
 | **sentimento** em 3 faixas (% Positivo / Neutro / Negativo) | |
 | **elogios recentes** (resumo higienizado, unidade, mês) — sem duplicatas | |

@@ -110,7 +110,6 @@ export default function App() {
 
 function Board({ dados }: { dados: MuralDados }) {
   const t = TEMAS[dados.tema] ?? TEMAS.claro;
-  const i = dados.indicadores;
 
   const vars = {
     '--bg': t.bg,
@@ -162,12 +161,8 @@ function Board({ dados }: { dados: MuralDados }) {
           </p>
         )}
 
-        {/* três indicadores */}
-        <div className="grid shrink-0 grid-cols-3 gap-[2.5vmin]">
-          <Indicador icone="✓" cor="#22c55e" valor={pct(i.respondidasPct)} rotulo="Respondidas" />
-          <Indicador icone="⏱" cor={AZUL} valor={pct(i.noPrazoPct)} rotulo="No prazo" />
-          <Indicador icone="📅" cor="#8b5cf6" valor={duracao(i.tempoMedioRespostaHoras)} rotulo="Resposta média" />
-        </div>
+        {/* três cards no topo - carrossel de 1 min se houver dados por unidade */}
+        <CarrosselTopo dados={dados} />
 
         {/* três painéis */}
         <div className="grid min-h-0 flex-1 grid-cols-3 gap-[2.5vmin]">
@@ -203,7 +198,77 @@ function Board({ dados }: { dados: MuralDados }) {
 
 /* ------------------------------------------------------------- elementos */
 
-function Indicador({ icone, cor, valor, rotulo }: { icone: string; cor: string; valor: string; rotulo: string }) {
+interface Card {
+  icone: string;
+  cor: string;
+  valor: string;
+  rotulo: string;
+  sub?: string;
+}
+
+const PALETA_UNIDADE = ['#22c55e', AZUL, '#8b5cf6', '#f59e0b', '#f43f5e', '#06b6d4'];
+const TROCA_GRUPO_MS = 60_000;
+
+/**
+ * Os três cards do topo. Grupo 0 = indicadores (respondidas / no prazo /
+ * resposta média). Se houver movimento em 2+ unidades, entram grupos de 3
+ * com o % de manifestações por unidade, e o carrossel troca a cada 1 min.
+ */
+function CarrosselTopo({ dados }: { dados: MuralDados }) {
+  const grupos = useMemo<Card[][]>(() => {
+    const i = dados.indicadores;
+    const gs: Card[][] = [
+      [
+        { icone: '✓', cor: '#22c55e', valor: pct(i.respondidasPct), rotulo: 'Respondidas' },
+        { icone: '⏱', cor: AZUL, valor: pct(i.noPrazoPct), rotulo: 'No prazo' },
+        { icone: '📅', cor: '#8b5cf6', valor: duracao(i.tempoMedioRespostaHoras), rotulo: 'Resposta média' },
+      ],
+    ];
+    for (let k = 0; k < dados.unidades.length; k += 3) {
+      gs.push(
+        dados.unidades.slice(k, k + 3).map((u, n) => ({
+          icone: '📍',
+          cor: PALETA_UNIDADE[(k + n) % PALETA_UNIDADE.length],
+          valor: `${u.pct}%`,
+          rotulo: u.nome,
+          sub: 'das manifestações',
+        })),
+      );
+    }
+
+    return gs;
+  }, [dados]);
+
+  const [g, setG] = useState(0);
+  useEffect(() => {
+    if (grupos.length < 2) return;
+    const t = window.setInterval(() => setG((v) => (v + 1) % grupos.length), TROCA_GRUPO_MS);
+
+    return () => window.clearInterval(t);
+  }, [grupos.length]);
+
+  return (
+    <div key={g} className="grid shrink-0 grid-cols-3 gap-[2.5vmin] animate-[trocaGrupo_0.5s_ease]">
+      {grupos[g % grupos.length].map((c, n) => (
+        <Indicador key={n} {...c} />
+      ))}
+      {grupos.length > 1 && (
+        <div className="col-span-3 -mt-[1vmin] flex justify-center gap-[0.8vmin]">
+          {grupos.map((_, n) => (
+            <span
+              key={n}
+              className="h-[0.8vmin] rounded-full transition-all"
+              style={{ width: n === g ? '2.6vmin' : '0.8vmin', background: n === g ? AZUL : 'var(--trilho)' }}
+            />
+          ))}
+        </div>
+      )}
+      <style>{`@keyframes trocaGrupo{from{opacity:0;transform:translateY(1.5vmin)}to{opacity:1}}`}</style>
+    </div>
+  );
+}
+
+function Indicador({ icone, cor, valor, rotulo, sub }: Card) {
   return (
     <div
       className="flex items-center gap-[2.5vmin] rounded-2xl border p-[2.5vmin] shadow-sm"
@@ -215,11 +280,12 @@ function Indicador({ icone, cor, valor, rotulo }: { icone: string; cor: string; 
       >
         {icone}
       </span>
-      <div>
+      <div className="min-w-0">
         <p className="text-[5.4vmin] font-extrabold leading-none tabular-nums">{valor}</p>
-        <p className="text-[1.7vmin] font-bold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+        <p className="truncate text-[1.7vmin] font-bold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
           {rotulo}
         </p>
+        {sub && <p className="text-[1.4vmin]" style={{ color: 'var(--muted)' }}>{sub}</p>}
       </div>
     </div>
   );

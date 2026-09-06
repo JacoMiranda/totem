@@ -36,7 +36,7 @@ class MuralService
 
         $registros = $this->base($org)
             ->where('criado_em', '>=', $desde)
-            ->get(['criado_em', 'atualizado_em', 'status', 'urgencia', 'sentimento', 'categoria', 'resposta_publicada_em']);
+            ->get(['criado_em', 'atualizado_em', 'status', 'urgencia', 'sentimento', 'categoria', 'resposta_publicada_em', 'device_id']);
 
         $total = $registros->count();
         $comSentimento = $registros->filter(fn ($m) => $m->sentimento !== null);
@@ -87,6 +87,9 @@ class MuralService
             // ÚNICO lugar com número absoluto - e é o movimento do canal
             // ("cada vez mais gente usa"), não a fila de problemas.
             'porPeriodo' => $this->porPeriodo($registros, $desde),
+            // Pontos de atendimento mais usados - % das manifestações por
+            // unidade do totem. Alimenta o carrossel de cards no mural.
+            'unidades' => $this->porUnidade($registros, $org),
             // O que as pessoas trazem - % por teor (Denúncia entra em
             // Reclamação, nunca aparece separada). Soma 100.
             'distribuicao' => $this->distribuicao($registros),
@@ -136,6 +139,35 @@ class MuralService
                 'total' => $total,
             ])
             ->values()
+            ->all();
+    }
+
+    /**
+     * % de manifestações por unidade do totem, da mais usada pra menos.
+     * Só devolve se houver 2+ unidades com movimento - senão não há
+     * carrossel de que falar.
+     *
+     * @param  \Illuminate\Support\Collection<int,Manifestation>  $registros
+     */
+    private function porUnidade($registros, Organizacao $org): array
+    {
+        $unidadePorDevice = \App\Models\Device::withoutGlobalScopes()
+            ->where('organizacao_id', $org->id)
+            ->pluck('unidade', 'id');
+
+        $porUnidade = $registros
+            ->groupBy(fn (Manifestation $m) => $unidadePorDevice[$m->device_id] ?: 'Outros')
+            ->map(fn ($grupo, $nome) => ['nome' => (string) $nome, 'total' => $grupo->count()])
+            ->sortByDesc('total')
+            ->values();
+
+        $total = $porUnidade->sum('total');
+        if ($porUnidade->count() < 2 || $total === 0) {
+            return [];
+        }
+
+        return $porUnidade
+            ->map(fn ($u) => ['nome' => $u['nome'], 'pct' => (int) round($u['total'] / $total * 100)])
             ->all();
     }
 

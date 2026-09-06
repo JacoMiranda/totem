@@ -221,7 +221,8 @@ class ManifestationApiTest extends TestCase
 
     public function test_admin_cria_dispositivo(): void
     {
-        $admin = User::factory()->create(['role' => UserRole::Admin]);
+        $org = \App\Models\Organizacao::create(['nome' => 'X', 'slug' => 'x'.Str::random(4), 'status' => 'ativa']);
+        $admin = User::factory()->create(['role' => UserRole::Admin, 'organizacao_id' => $org->id]);
 
         $resposta = $this->actingAs($admin, 'sanctum')->postJson('/api/v1/devices', [
             'codigo' => 'TOTEM-CENTRO-01',
@@ -230,7 +231,24 @@ class ManifestationApiTest extends TestCase
 
         $resposta->assertCreated();
         $resposta->assertJsonStructure(['id', 'codigo', 'deviceKey']);
-        $this->assertDatabaseHas('devices', ['codigo' => 'TOTEM-CENTRO-01']);
+        // O totem nasce vinculado à conta do admin (antes ficava com org nula).
+        $this->assertDatabaseHas('devices', ['codigo' => 'TOTEM-CENTRO-01', 'organizacao_id' => $org->id]);
+    }
+
+    public function test_admin_da_plataforma_precisa_dizer_a_empresa_do_totem(): void
+    {
+        $org = \App\Models\Organizacao::create(['nome' => 'Cliente', 'slug' => 'c'.Str::random(4), 'status' => 'ativa']);
+        $plataforma = User::factory()->create(['role' => UserRole::Admin, 'organizacao_id' => null]);
+
+        $this->actingAs($plataforma, 'sanctum')->postJson('/api/v1/devices', [
+            'codigo' => 'T-SEM-ORG', 'nome' => 'X',
+        ])->assertStatus(422);
+
+        $this->actingAs($plataforma, 'sanctum')->postJson('/api/v1/devices', [
+            'codigo' => 'T-COM-ORG', 'nome' => 'X', 'organizacaoId' => $org->id,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('devices', ['codigo' => 'T-COM-ORG', 'organizacao_id' => $org->id]);
     }
 
     public function test_leitor_nao_pode_criar_dispositivo(): void

@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use App\Models\Organizacao;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * Gestão de dispositivos (docs/API.md, seção "Dispositivos (admin)") -
@@ -16,19 +18,43 @@ use Illuminate\Support\Str;
  */
 class DeviceController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         Gate::authorize('gerenciar-dispositivos');
 
-        return response()->json(Device::orderBy('nome')->get()->map(fn (Device $d) => [
-            'id' => $d->id,
-            'codigo' => $d->codigo,
-            'nome' => $d->nome,
-            'unidade' => $d->unidade,
-            'ativo' => $d->ativo,
-            'ultimaSyncEm' => $d->ultima_sync_em?->toIso8601String(),
-            'versaoApp' => $d->versao_app,
-        ]));
+        $plataforma = $request->user()->daPlataforma();
+
+        // Sem organização (equipe da plataforma) o global scope não filtra:
+        // a lista traz TODOS os totens de TODAS as contas. Aí precisa do
+        // nome da empresa e de filtro por empresa/busca.
+        $dispositivos = Device::with('organizacao:id,nome')
+            ->when($plataforma && $request->filled('organizacaoId'), fn ($q) => $q->where('organizacao_id', $request->string('organizacaoId')))
+            ->when($request->filled('q'), fn ($q) => $q->where(fn ($s) => $s
+                ->where('codigo', 'like', '%'.$request->string('q').'%')
+                ->orWhere('nome', 'like', '%'.$request->string('q').'%')
+                ->orWhere('unidade', 'like', '%'.$request->string('q').'%')
+                ->orWhereHas('organizacao', fn ($o) => $o->where('nome', 'like', '%'.$request->string('q').'%'))))
+            ->orderBy('nome')
+            ->get()
+            ->map(fn (Device $d) => [
+                'id' => $d->id,
+                'codigo' => $d->codigo,
+                'nome' => $d->nome,
+                'unidade' => $d->unidade,
+                'ativo' => $d->ativo,
+                'organizacao' => $d->organizacao?->only(['id', 'nome']),
+                'ultimaSyncEm' => $d->ultima_sync_em?->toIso8601String(),
+                'versaoApp' => $d->versao_app,
+            ]);
+
+        return response()->json([
+            'dispositivos' => $dispositivos,
+            'plataforma' => $plataforma,
+            // Lista de empresas pro filtro - só faz sentido pra plataforma.
+            'organizacoes' => $plataforma
+                ? Organizacao::orderBy('nome')->get(['id', 'nome'])
+                : [],
+        ]);
     }
 
     /**
@@ -94,11 +120,18 @@ class DeviceController extends Controller
         // outras versoes/scaffolds do Laravel incluem por padrao.
         Gate::authorize('gerenciar-dispositivos');
 
+        $plataforma = $request->user()->daPlataforma();
+
         $validado = $request->validate([
             'codigo' => ['required', 'string', 'max:255', 'unique:devices,codigo'],
             'nome' => ['required', 'string', 'max:255'],
             'unidade' => ['nullable', 'string', 'max:255'],
+            // Admin de cliente: o totem é da conta dele. Plataforma: precisa dizer de qual.
+            'organizacaoId' => [$plataforma ? 'required' : 'prohibited', 'uuid', Rule::exists('organizacoes', 'id')],
         ]);
+
+        $validado['organizacao_id'] = $plataforma ? $validado['organizacaoId'] : $request->user()->organizacao_id;
+        unset($validado['organizacaoId']);
 
         [$device, $chaveCrua] = $this->criarComNovaChave($validado);
 
