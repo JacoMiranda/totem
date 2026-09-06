@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'nome', 'slug', 'documento', 'plano_id', 'status', 'trial_expira_em',
     'mural_ativo', 'mural_token', 'mural_titulo', 'mural_tema',
     'mural_totem_local', 'mural_linha_cor',
+    'mural_token_anterior', 'mural_token_anterior_ate',
 ])]
 class Organizacao extends Model
 {
@@ -31,6 +32,7 @@ class Organizacao extends Model
             'status' => OrganizacaoStatus::class,
             'trial_expira_em' => 'datetime',
             'mural_ativo' => 'boolean',
+            'mural_token_anterior_ate' => 'datetime',
         ];
     }
 

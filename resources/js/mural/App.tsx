@@ -47,26 +47,38 @@ function tokenDaUrl(): string {
   return window.location.pathname.replace(/^\/mural\/?/, '').split(/[/?#]/)[0] ?? '';
 }
 
+type Erro = null | 'inicial' | 'mudou';
+
 export default function App() {
   const [dados, setDados] = useState<MuralDados | null>(null);
-  const [erro, setErro] = useState(false);
+  const [erro, setErro] = useState<Erro>(null);
   const token = useMemo(tokenDaUrl, []);
 
   useEffect(() => {
-    if (!token) return setErro(true);
+    if (!token) return setErro('inicial');
 
     let vivo = true;
+    let carregouAlgumaVez = false;
     const carregar = async () => {
       try {
         const r = await fetch(`/api/v1/mural/${token}`, { headers: { Accept: 'application/json' } });
+        // 404 = link morto (token trocado + grace vencido, ou mural desligado).
+        // Diferente de uma oscilação de rede: aí SIM a TV troca de tela.
+        if (r.status === 404) {
+          if (vivo) setErro('mudou');
+
+          return;
+        }
         if (!r.ok) throw new Error(String(r.status));
         const json = (await r.json()) as MuralDados;
         if (vivo) {
+          carregouAlgumaVez = true;
           setDados(json);
-          setErro(false);
+          setErro(null);
         }
       } catch {
-        if (vivo && !dados) setErro(true);
+        // Oscilação de rede: mantém a última tela que carregou.
+        if (vivo && !carregouAlgumaVez) setErro('inicial');
       }
     };
 
@@ -83,7 +95,14 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  if (erro) return <Aviso>Mural indisponível no momento.</Aviso>;
+  if (erro === 'mudou')
+    return (
+      <Aviso>
+        <p className="text-[3.4vmin] font-extrabold">Este mural mudou de endereço</p>
+        <p className="mt-[1.5vmin] text-[2.2vmin]">Peça o link novo ao administrador e atualize esta tela.</p>
+      </Aviso>
+    );
+  if (erro === 'inicial') return <Aviso>Mural indisponível no momento.</Aviso>;
   if (!dados) return <Aviso>Carregando…</Aviso>;
 
   return <Board dados={dados} />;
@@ -127,6 +146,12 @@ function Board({ dados }: { dados: MuralDados }) {
           </span>
         </p>
       </header>
+
+      {dados.linkMudando && (
+        <div className="shrink-0 bg-amber-400 px-[4vmin] py-[1.2vmin] text-center text-[1.9vmin] font-extrabold text-amber-950">
+          ⚠ Este mural mudou de endereço — peça o link novo ao administrador e atualize esta tela em breve.
+        </div>
+      )}
 
       <Esteira elogios={dados.elogios} escuro={dados.tema === 'escuro'} />
 
@@ -473,7 +498,11 @@ function Mascote() {
 }
 
 function Aviso({ children }: { children: React.ReactNode }) {
-  return <div className="flex h-screen items-center justify-center bg-[#eef4fb] text-[3vmin] text-slate-500">{children}</div>;
+  return (
+    <div className="flex h-screen flex-col items-center justify-center gap-2 bg-[#eef4fb] p-8 text-center text-[3vmin] text-slate-500">
+      {children}
+    </div>
+  );
 }
 
 /**

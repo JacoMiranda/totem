@@ -15,6 +15,7 @@ interface Config {
   linhaCor: string | null;
   token: string | null;
   url: string | null;
+  linkAnterior: { token: string; ate: string } | null;
 }
 
 const CORES_LINHA = ['', 'amarela', 'azul', 'verde', 'vermelha', 'laranja', 'roxa', 'rosa', 'cinza'];
@@ -206,6 +207,14 @@ export function Mural() {
             Personalize (ex.: <code>minha-empresa</code>) ou deixe o código aleatório. Letras minúsculas, números e
             hífen; mínimo 5. Quanto mais óbvio, menos privado — qualquer pessoa que adivinhe abre o mural.
           </p>
+
+          {cfg.linkAnterior && (
+            <p className="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px] p-2">
+              O link anterior (<code>/mural/{cfg.linkAnterior.token}</code>) continua funcionando até{' '}
+              <b>{new Date(cfg.linkAnterior.ate).toLocaleString('pt-BR')}</b> — tempo para atualizar as TVs. As telas
+              que ainda estiverem nele mostram um aviso.
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3">
             <code className="flex-1 min-w-0 truncate rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs">

@@ -168,8 +168,15 @@ class MuralApiTest extends TestCase
         $r->assertOk()->assertJsonPath('token', 'minha-empresa');
         $this->assertStringEndsWith('/mural/minha-empresa', $r->json('url'));
 
+        // O link antigo ainda resolve por 48h (grace), com o aviso.
+        $this->getJson('/api/v1/mural/aleatoriolongo123')->assertOk()->assertJsonPath('linkMudando', true);
+        $this->getJson('/api/v1/mural/minha-empresa')->assertOk()->assertJsonPath('linkMudando', false);
+
+        // Passado o prazo, o link antigo morre.
+        $this->travel(49)->hours();
         $this->getJson('/api/v1/mural/aleatoriolongo123')->assertNotFound();
         $this->getJson('/api/v1/mural/minha-empresa')->assertOk();
+        $this->travelBack();
 
         // curto demais, caractere inválido, ou palavra reservada = 422
         $this->patchJson('/api/v1/mural', ['ativo' => true, 'token' => 'ab'])->assertStatus(422);
@@ -187,16 +194,23 @@ class MuralApiTest extends TestCase
         $this->patchJson('/api/v1/mural', ['ativo' => true, 'token' => 'jatomado123'])->assertStatus(422);
     }
 
-    public function test_regenerar_token_invalida_o_anterior(): void
+    public function test_regenerar_token_da_grace_de_48h_ao_anterior(): void
     {
         $org = $this->org(['mural_ativo' => true, 'mural_token' => 'tokenoriginal123']);
         $admin = User::factory()->create(['organizacao_id' => $org->id, 'role' => UserRole::Admin]);
         Sanctum::actingAs($admin);
 
-        $novo = $this->postJson('/api/v1/mural/token')->assertOk()->json('token');
-
+        $r = $this->postJson('/api/v1/mural/token')->assertOk();
+        $novo = $r->json('token');
         $this->assertNotSame('tokenoriginal123', $novo);
+        $this->assertSame('tokenoriginal123', $r->json('linkAnterior.token'));
+
+        // Antigo ainda funciona por 48h (com aviso); o novo, normal.
+        $this->getJson('/api/v1/mural/tokenoriginal123')->assertOk()->assertJsonPath('linkMudando', true);
+        $this->getJson('/api/v1/mural/'.$novo)->assertOk()->assertJsonPath('linkMudando', false);
+
+        $this->travel(49)->hours();
         $this->getJson('/api/v1/mural/tokenoriginal123')->assertNotFound();
-        $this->getJson('/api/v1/mural/'.$novo)->assertOk();
+        $this->travelBack();
     }
 }

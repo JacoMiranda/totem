@@ -7,6 +7,7 @@ use App\Models\Organizacao;
 use App\Services\MuralService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -20,26 +21,41 @@ use Illuminate\Validation\Rule;
  *   e com throttle na rota.
  * - `config` / `atualizar` / `regenerarToken` são do painel (admin da conta),
  *   pra ligar/desligar o mural e pegar o link.
+ *
+ * Trocar o token deixa o ANTIGO resolvendo por 48h (grace) - assim uma TV
+ * que já está no ar não fica órfã de imediato; ela mostra um aviso de que
+ * o endereço mudou.
  */
 class MuralController extends Controller
 {
     private const CACHE_SEGUNDOS = 120;
 
+    private const GRACE_HORAS = 48;
+
     public function __construct(private readonly MuralService $mural) {}
 
     public function show(string $token): JsonResponse
     {
-        $org = Organizacao::where('mural_token', $token)->where('mural_ativo', true)->first();
+        $org = Organizacao::where('mural_ativo', true)
+            ->where(function ($q) use ($token) {
+                $q->where('mural_token', $token)
+                    ->orWhere(fn ($q2) => $q2->where('mural_token_anterior', $token)->where('mural_token_anterior_ate', '>', now()));
+            })
+            ->first();
 
         if (! $org) {
-            return response()->json(['error' => ['code' => 'MURAL_INDISPONIVEL', 'message' => 'Mural não encontrado ou desativado.']], 404);
+            return response()->json([
+                'error' => ['code' => 'MURAL_INDISPONIVEL', 'message' => 'Mural não encontrado, desativado, ou o endereço mudou.'],
+            ], 404);
         }
 
         $dados = Cache::remember(
-            "mural:{$token}",
+            "mural:org:{$org->id}",
             self::CACHE_SEGUNDOS,
             fn () => $this->mural->paraOrganizacao($org),
         );
+        // Servido pelo token ANTIGO (grace) -> a tela mostra um aviso.
+        $dados['linkMudando'] = $org->mural_token !== $token;
 
         return response()->json($dados);
     }
@@ -95,14 +111,13 @@ class MuralController extends Controller
             ],
         ]);
 
-        if ($request->filled('token')) {
-            if ($org->mural_token) {
-                Cache::forget("mural:{$org->mural_token}");
-            }
+        if ($request->filled('token') && $dados['token'] !== $org->mural_token) {
+            $this->guardarTokenAnterior($org);
             $org->mural_token = $dados['token'];
         } elseif ($dados['ativo'] && ! $org->mural_token) {
             $org->mural_token = $this->tokenNovo($org);
         }
+
         $org->mural_ativo = $dados['ativo'];
         if ($request->has('titulo')) {
             $org->mural_titulo = $dados['titulo'] ?: null;
@@ -118,9 +133,7 @@ class MuralController extends Controller
         }
         $org->save();
 
-        if ($org->mural_token) {
-            Cache::forget("mural:{$org->mural_token}");
-        }
+        Cache::forget("mural:org:{$org->id}");
 
         return response()->json($this->payloadConfig($org));
     }
@@ -130,17 +143,28 @@ class MuralController extends Controller
         Gate::authorize('gerenciar-mural');
         $org = $this->organizacaoDoUsuario($request);
 
-        if ($org->mural_token) {
-            Cache::forget("mural:{$org->mural_token}");
-        }
+        $this->guardarTokenAnterior($org);
         $org->mural_token = $this->tokenNovo($org, aleatorio: true);
         $org->save();
+
+        Cache::forget("mural:org:{$org->id}");
 
         return response()->json($this->payloadConfig($org));
     }
 
+    /** Deixa o token atual valendo por mais 48h como "anterior". */
+    private function guardarTokenAnterior(Organizacao $org): void
+    {
+        if ($org->mural_token) {
+            $org->mural_token_anterior = $org->mural_token;
+            $org->mural_token_anterior_ate = now()->addHours(self::GRACE_HORAS);
+        }
+    }
+
     private function payloadConfig(Organizacao $org): array
     {
+        $graceAtivo = $org->mural_token_anterior && $org->mural_token_anterior_ate?->isFuture();
+
         return [
             'ativo' => (bool) $org->mural_ativo,
             'titulo' => $org->mural_titulo,
@@ -150,6 +174,12 @@ class MuralController extends Controller
             'linhaCor' => $org->mural_linha_cor,
             'token' => $org->mural_token,
             'url' => $org->mural_token ? url("/mural/{$org->mural_token}") : null,
+            // Se um link antigo ainda está no ar (grace), o painel avisa
+            // "o link anterior funciona até ...".
+            'linkAnterior' => $graceAtivo ? [
+                'token' => $org->mural_token_anterior,
+                'ate' => Carbon::parse($org->mural_token_anterior_ate)->toIso8601String(),
+            ] : null,
         ];
     }
 

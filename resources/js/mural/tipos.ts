@@ -2,6 +2,8 @@ export interface MuralDados {
   titulo: string;
   tema: 'claro' | 'escuro';
   orientacao: { local: string | null; linhaCor: string | null };
+  /** Servido pelo endereço ANTIGO (grace de 48h após troca do token). */
+  linkMudando?: boolean;
   atualizadoEm: string;
   janelaDias: number;
   amostraPequena: boolean;

@@ -72,8 +72,14 @@ organização, se estiver livre; senão, aleatório. Regras: `[a-z0-9-]`,
 mínimo 5, único entre todas as contas, e `resumo`/`config`/`token` são
 reservados. Quanto mais óbvio o token, menos privado o link (qualquer um
 que adivinhe abre). É semi-público de qualquer forma: quem tem o link vê,
-e a página tem `<meta robots noindex>`. Se vazar, "gerar aleatório"
-(`POST /api/v1/mural/token`) troca o link e o anterior morre na hora.
+e a página tem `<meta robots noindex>`.
+
+**Trocar o token não deixa uma TV órfã de imediato:** o endereço antigo
+(`mural_token_anterior` / `mural_token_anterior_ate`) continua resolvendo
+por **48h**, com uma faixa amarela "este mural mudou de endereço" no topo.
+Passado o prazo, o link antigo dá 404 e a tela mostra "peça o link novo ao
+administrador" (não congela em dados velhos — só uma oscilação de rede
+mantém a última tela). O painel mostra até quando o link antigo vale.
 
 ## Na tela de espera do totem
 
