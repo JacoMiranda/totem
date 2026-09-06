@@ -136,6 +136,37 @@ Registro do que realmente aconteceu em cada atualização de produção — serv
 pra uma sessão nova não repetir passo já feito, nem se assustar com um aviso
 já conhecido.
 
+### 2026-09-06 (noite) — mural público + blindagem do totem + empresa-demo
+
+Pacote `totem-2026-09-06-1411.zip` (`deploy.ps1` — o passo final de
+`composer install` pra restaurar dev-deps falhou por lock de antivírus no
+Windows, MAS o zip já estava pronto; rodar `composer install` de novo
+depois resolve o ambiente local). Aplicado por `ssh`/`scp` diretos.
+
+1. `cp .env .env.pre-mural-backup`. Contagens antes = depois (orgs 1,
+   users 1, devices 2, manifs 3 — antes de semear a demo).
+2. `unzip -oq` (aviso de backslash, ignorado), `migrate --force` →
+   `2026_09_06_000001_add_mural_to_organizacoes` (3 colunas nullable em
+   `organizacoes` — aditivo, sem risco), `PlanoSeeder --force`, caches,
+   `public/build` → `public_html/totem/build` (o anterior vira `build.bak`).
+3. `php artisan ouvidoria:semear-demo --fresh --force` → empresa-demo
+   "Rede Aurora" com o mural em
+   `https://totem.prinatus.com.br/mural/demoredeauroraouvidoria`.
+
+O que entrou: mural público (`/mural/{token}` + `/admin/mural`), tela de
+espera do totem com números + botão destacado, painel de suporte (segurar
+3s canto inferior direito → PIN `VITE_SUPORTE_PIN`, **default 0000 no
+build atual — trocar antes de pôr totem em campo**), fix do bug `keywords`
+422, cancelar/voltar/reset-por-inatividade, error boundary.
+
+Verificado: health 200, `/planos` 200, `/mural/<token>` HTML+API 200
+(92% respondidas, 4 fatias, 7 elogios), token inválido 404, `/atendimento`
+e `/admin` 200, bundle `main-DGd8du8a.js`.
+
+Pendente: reapontar o navegador do totem físico pra `/atendimento`;
+definir `VITE_SUPORTE_PIN` e rebuildar; limpar `build.bak` quando o deploy
+estiver validado em campo.
+
 ### 2026-09-06 (tarde) — chave da Gemini fora de sincronia (NÃO era o microfone)
 
 Sintoma: no totem em produção o áudio gravava e subia (WAV real, ~600 KB,
