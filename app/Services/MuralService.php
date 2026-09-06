@@ -78,6 +78,10 @@ class MuralService
                 'diasSemAtraso' => $this->diasSemAtraso($org),
                 'diasOuvindo' => $this->diasOuvindo($org),
             ],
+            // Volume por semana na janela (pro gráfico de barras). É o
+            // ÚNICO lugar com número absoluto - e é o movimento do canal
+            // ("cada vez mais gente usa"), não a fila de problemas.
+            'porPeriodo' => $this->porPeriodo($registros, $desde),
             // O que as pessoas trazem - % por teor (Denúncia entra em
             // Reclamação, nunca aparece separada). Soma 100.
             'distribuicao' => $this->distribuicao($registros),
@@ -98,6 +102,36 @@ class MuralService
             ],
             'elogios' => $this->elogios($org),
         ];
+    }
+
+    /**
+     * Contagem por semana (ISO) na janela. Sempre devolve todas as semanas,
+     * inclusive as zeradas, pro gráfico não "pular" períodos.
+     *
+     * @param  \Illuminate\Support\Collection<int,Manifestation>  $registros
+     */
+    private function porPeriodo($registros, CarbonImmutable $desde): array
+    {
+        $inicio = $desde->startOfWeek();
+        $semanas = [];
+        for ($s = $inicio; $s->lte(CarbonImmutable::now()); $s = $s->addWeek()) {
+            $semanas[$s->toDateString()] = 0;
+        }
+
+        foreach ($registros as $m) {
+            $chave = CarbonImmutable::parse($m->criado_em)->startOfWeek()->toDateString();
+            if (array_key_exists($chave, $semanas)) {
+                $semanas[$chave]++;
+            }
+        }
+
+        return collect($semanas)
+            ->map(fn ($total, $dia) => [
+                'rotulo' => CarbonImmutable::parse($dia)->format('d/m'),
+                'total' => $total,
+            ])
+            ->values()
+            ->all();
     }
 
     /** @param \Illuminate\Support\Collection<int,Manifestation> $registros */

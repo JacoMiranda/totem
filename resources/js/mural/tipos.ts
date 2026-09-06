@@ -16,6 +16,7 @@ export interface MuralDados {
     diasSemAtraso: number;
     diasOuvindo: number;
   };
+  porPeriodo: { rotulo: string; total: number }[];
   distribuicao: { chave: 'Elogio' | 'Sugestão' | 'Dúvida' | 'Reclamação'; pct: number }[];
   clima: {
     positivoPct: number | null;

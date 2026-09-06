@@ -18,14 +18,16 @@ Janela: últimos 90 dias por data do atendimento.
 | % de **reclamações + denúncias já resolvidas** | a palavra "denúncia" em lugar nenhum do JSON |
 | **tempo médio** para responder | filas, backlog, o que está atrasado |
 | **dias sem atraso** (sequência) e **dias ouvindo** | |
+| **volume por semana** (barras — só o movimento do canal, não a fila) | |
 | **distribuição por teor** em % (Elogio / Sugestão / Dúvida / *Reclamação* — Denúncia entra somada em Reclamação, nunca com rótulo próprio) | |
-| **clima** em 3 faixas (% tranquilas / neutras / preocupadas, a partir do sentimento) | |
+| **sentimento** em 3 faixas (% Positivo / Neutro / Negativo) | |
 | **elogios recentes** (resumo higienizado, unidade, mês) — sem duplicatas | |
 
-A tela ainda traz um rodapé fixo de **incentivo** ("a sua opinião muda
-este lugar — use o totem") com um rostinho SVG, e uma **esteira de
-elogios** rolando no topo. Cenas se alternam a cada 14s (indicadores →
-clima/distribuição).
+O `porPeriodo` (barras) é o único bloco com número absoluto — e de
+propósito: é o crescimento do uso do canal, não o tamanho do backlog.
+Rodapé fixo de **incentivo** ("a sua opinião muda este lugar — use o
+totem") com rostinho SVG, e **esteira de elogios** logo abaixo do
+cabeçalho.
 
 Amostra pequena (< 5 manifestações na janela): o mural entra em modo
 "estamos começando a ouvir você" em vez de mostrar 0%.
@@ -67,11 +69,13 @@ manifestações *antes* de registrar a dela — e registra dali mesmo.
 
 - **Front**: SPA própria em `resources/js/mural/` (entrada no
   `vite.config.ts`), servida por `GET /mural/{any?}` (blade
-  `resources/views/mural.blade.php`). Tema escuro, paleta amigável
-  (emerald/sky/violet/amber/coral, cada indicador com a sua cor),
-  números grandes em `vmin` pra escalar em qualquer TV, contadores
-  animados, cenas que alternam. Zero asset externo (o mascote é SVG
-  inline). Recarrega sozinha a cada 2 min e ao reganhar foco.
+  `resources/views/mural.blade.php`). Dashboard claro: cabeçalho azul,
+  três indicadores com ícone (respondidas / no prazo / resposta média) e
+  três painéis (barras de volume por semana, rosca por teor, rosto de
+  sentimento). Esteira de elogios abaixo do cabeçalho e faixa de
+  incentivo ao totem no rodapé. Tudo em `vmin` pra escalar em qualquer
+  TV. Zero asset externo (o mascote é SVG inline). Recarrega sozinha a
+  cada 2 min e ao reganhar foco.
 - **API pública**: `GET /api/v1/mural/{token}` (grupo `throttle:20,1`,
   junto da consulta pública de protocolo). Resposta cacheada 120s por
   token (`Cache::remember`), invalidada quando o admin salva ou troca o
