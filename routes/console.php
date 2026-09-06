@@ -19,6 +19,12 @@ Artisan::command('inspire', function () {
 // withoutOverlapping(2) evita que o lock (cache_locks) fique preso por
 // até 24h (default do Laravel) se um worker travar no meio de um job.
 Schedule::call(function () {
+    // Heartbeat temporário (2026-08-28) - único jeito de confirmar de
+    // verdade se o cron do hPanel está chamando schedule:run, já que
+    // `crontab -l` não existe nem via SSH nessa conta (confirmado -
+    // "crontab: command not found"). Remover depois de confirmado.
+    \Illuminate\Support\Facades\Log::info('cron heartbeat: '.now()->toDateTimeString());
+
     Artisan::call('queue:work', [
         '--stop-when-empty' => true,
         '--max-time' => 55,
