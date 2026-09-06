@@ -192,3 +192,71 @@ fundo claro.
 
 Roteiro operacional (como gravar no ambiente real, credenciais, prints):
 ver [DEMO-APRESENTACAO.md](DEMO-APRESENTACAO.md).
+
+---
+
+## Descrição para o YouTube
+
+Vídeo publicado: https://youtu.be/I3lio-1xRtc
+
+### Versão curta (para redes sociais / primeira linha)
+
+> Totem de ouvidoria por voz: o cidadão fala, a inteligência artificial
+> transcreve e organiza a manifestação, e a sua equipe resolve — com um
+> painel de transparência à vista de todos.
+
+### Versão completa (descrição do vídeo)
+
+```
+Totem de Ouvidoria Inteligente — a sua voz, ouvida.
+
+Ouvidoria de verdade não pode depender de caixinha de sugestão, formulário
+que ninguém termina ou telefone que não atende. Este é um totem de
+autoatendimento onde a pessoa simplesmente FALA a sua reclamação, elogio,
+dúvida ou denúncia. Uma inteligência artificial transcreve a fala, resume e
+classifica na hora — teor, sentimento e urgência — e entrega tudo
+organizado para a equipe de ouvidoria resolver.
+
+O que o sistema faz:
+
+• Atendimento por voz, com todas as instruções faladas — quem não lê ou
+  não escreve bem consegue registrar sozinho.
+• Transcrição e classificação automáticas da manifestação (elogio,
+  sugestão, dúvida, reclamação, denúncia), com resumo e nível de urgência.
+• Registro em menos de um minuto, anônimo por padrão. O cidadão sai com um
+  número de protocolo e um código para acompanhar a resposta.
+• Funciona mesmo sem internet: o totem continua atendendo e sincroniza
+  sozinho quando a conexão volta. Nada se perde.
+• Painel para a equipe: cada caso é distribuído automaticamente entre os
+  analistas, de forma equilibrada. É possível ouvir o áudio original,
+  registrar a decisão, mudar o status, responder oficialmente e acompanhar
+  os prazos (SLA).
+• Relatórios por categoria, sentimento e urgência — a gestão enxerga o
+  padrão e age sobre a causa, não só sobre o caso.
+• Mural de transparência: uma tela na recepção mostra ao público quanto a
+  instituição responde, em quanto tempo e o que já foi resolvido — sem
+  expor volume de reclamações nem denúncias.
+• Conforme a LGPD: consentimento explícito e falado, retenção com prazo,
+  expurgo automático e acesso auditado.
+
+Para quem é: prefeituras, câmaras, hospitais e postos de saúde,
+universidades, concessionárias e agências reguladoras, redes de varejo,
+shopping centers e empresas de serviço — qualquer lugar com atendimento ao
+público e uma ouvidoria ou SAC.
+
+Quer ver funcionando na sua operação? Fale com a gente: [seu site / e-mail]
+
+#ouvidoria #atendimentoaocidadao #transformacaodigital #totem
+#inteligenciaartificial #LGPD #governo #experienciadocliente #SAC
+```
+
+### Capítulos (ajustar os tempos ao vídeo real)
+
+```
+0:00 O problema da ouvidoria hoje
+0:25 O totem: a pessoa só fala
+1:05 O painel: a equipe recebe e resolve
+1:50 O mural de transparência na recepção
+2:15 Escuta ativa, de verdade
+```
+
