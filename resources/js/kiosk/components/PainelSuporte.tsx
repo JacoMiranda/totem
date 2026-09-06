@@ -12,8 +12,9 @@ import { ConfirmarModal } from './ConfirmarModal';
  * o cidadão não deve conseguir sair - mas o SUPORTE precisa. Isto NÃO
  * substitui o travamento do sistema operacional (Chrome --kiosk, Fully
  * Kiosk, Assigned Access - ver docs/MODO-QUIOSQUE.md); é a camada do app
- * pros casos moles: sair da tela cheia, recarregar, re-parear, ver
- * diagnóstico, esvaziar a fila local presa.
+ * pros casos moles: sair da tela cheia, recarregar, abrir a administração
+ * (ex.: pareou o totem errado), re-parear, ver diagnóstico, esvaziar a
+ * fila local presa.
  *
  * Ativação: segurar 3s o canto INFERIOR DIREITO (área invisível) -> PIN.
  * (Os cantos de cima têm os botões Voltar/Cancelar da BarraJornada.)
@@ -166,11 +167,12 @@ export function PainelSuporte() {
                 Voltar ao início
               </BotaoPainel>
               <BotaoPainel onClick={() => void drenarFila()}>Forçar sincronização</BotaoPainel>
+              <BotaoPainel onClick={() => (window.location.href = '/admin')}>Abrir administração</BotaoPainel>
               <BotaoPainel onClick={() => setConfirmando('fila')} perigo>
                 Esvaziar fila local
               </BotaoPainel>
               <BotaoPainel onClick={() => setConfirmando('reparear')} perigo>
-                Re-parear totem
+                Trocar / re-parear totem
               </BotaoPainel>
             </div>
 

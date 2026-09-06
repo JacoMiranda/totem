@@ -18,8 +18,10 @@ documento.
   "tivemos um problema, recomeçar", reportando pro `/admin/logs`.
 - **Escotilha de suporte** — segurar 3s o canto inferior direito → PIN
   (`VITE_SUPORTE_PIN`) → painel: sair da tela cheia, recarregar, voltar ao
-  início, forçar sincronização, esvaziar fila local, re-parear. É o
-  suficiente pros problemas "moles"; **não** substitui o travamento do SO.
+  início, forçar sincronização, **abrir a administração** (pareou o totem
+  errado, ou qualquer manutenção pelo painel), esvaziar fila local,
+  trocar/re-parear. É o suficiente pros problemas "moles"; **não**
+  substitui o travamento do SO.
 
 ## Travamento do SO — escolha por plataforma
 
