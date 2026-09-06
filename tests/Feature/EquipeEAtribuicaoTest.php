@@ -51,6 +51,7 @@ class EquipeEAtribuicaoTest extends TestCase
         return [$chave];
     }
 
+    /** Reclamação de propósito: só o que é negativo entra no fluxo/distribuição (o resto conclui sozinho). */
     private function criarManifestacao(string $chave): string
     {
         return $this->postJson('/api/v1/manifestations', [
@@ -58,9 +59,9 @@ class EquipeEAtribuicaoTest extends TestCase
             'criadoEm' => now()->toIso8601String(),
             'consentimentoLgpd' => true,
             'transcricao' => 'Relato de teste sobre o atendimento.',
-            'sentimento' => 'Neutro',
-            'categoria' => 'Dúvida',
-            'urgencia' => 'Baixa',
+            'sentimento' => 'Insatisfeito',
+            'categoria' => 'Reclamação',
+            'urgencia' => 'Média',
         ], ['X-Device-Key' => $chave])->json('id');
     }
 

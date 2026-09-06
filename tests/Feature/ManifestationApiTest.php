@@ -99,6 +99,44 @@ class ManifestationApiTest extends TestCase
         ], ['X-Device-Key' => $chave])->assertCreated();
     }
 
+    /** Elogio / dúvida tranquila entra CONCLUÍDA - a equipe só trata o que é negativo. */
+    public function test_manifestacao_nao_negativa_e_concluida_automaticamente(): void
+    {
+        [, $chave] = $this->criarDevice();
+
+        $r = $this->postJson('/api/v1/manifestations', [
+            'clientId' => (string) Str::uuid(),
+            'criadoEm' => now()->toIso8601String(),
+            'consentimentoLgpd' => true,
+            'transcricao' => 'Parabéns, atendimento excelente!',
+            'sentimento' => 'Excelente',
+            'categoria' => 'Elogio',
+            'urgencia' => 'Baixa',
+        ], ['X-Device-Key' => $chave]);
+
+        $r->assertCreated()->assertJsonPath('status', 'Concluída');
+        $this->assertDatabaseHas('manifestation_status_history', [
+            'para_status' => 'Concluída',
+            'de_status' => null,
+        ]);
+    }
+
+    /** Reclamação (ou sentimento negativo) NÃO é concluída sozinha. */
+    public function test_reclamacao_continua_no_fluxo(): void
+    {
+        [, $chave] = $this->criarDevice();
+
+        $this->postJson('/api/v1/manifestations', [
+            'clientId' => (string) Str::uuid(),
+            'criadoEm' => now()->toIso8601String(),
+            'consentimentoLgpd' => true,
+            'transcricao' => 'Demorou demais.',
+            'sentimento' => 'Insatisfeito',
+            'categoria' => 'Reclamação',
+            'urgencia' => 'Alta',
+        ], ['X-Device-Key' => $chave])->assertCreated()->assertJsonPath('status', 'Recebida');
+    }
+
     public function test_sem_device_key_e_rejeitado(): void
     {
         $this->postJson('/api/v1/manifestations', [

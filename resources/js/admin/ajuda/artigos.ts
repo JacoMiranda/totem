@@ -87,8 +87,9 @@ export const ARTIGOS: Artigo[] = [
     categoria: 'Manifestações',
     tags: ['distribuição', 'automático', 'responsável', 'rodízio', 'fila'],
     corpo: [
-      { p: 'Quando o cidadão termina no totem, a manifestação entra no painel com status "Recebida", protocolo e a classificação automática (teor, sentimento, urgência).' },
-      { p: 'Ela já entra atribuída a alguém: o sistema escolhe quem está com MENOS casos em aberto entre as pessoas que você marcou no rodízio (em Equipe → coluna "Rodízio"). Se ninguém está no rodízio, ela fica sem responsável e alguém precisa atribuir à mão.' },
+      { p: 'Quando o cidadão termina no totem, a manifestação entra no painel com protocolo e a classificação automática (teor, sentimento, urgência).' },
+      { p: 'Se NÃO for nada negativo (elogio, ou dúvida/sugestão tranquila — sem sentimento ruim, sem urgência alta), ela já entra CONCLUÍDA: a equipe só cuida do que precisa de tratamento. Continua na lista (filtro status = Concluída) e conta como "resolvida" nos indicadores.' },
+      { p: 'Se for negativa (reclamação, denúncia, sentimento ruim, urgência alta), entra "Recebida" e já atribuída: o sistema escolhe quem está com MENOS casos em aberto entre as pessoas do rodízio (Equipe → coluna "Rodízio"). Sem ninguém no rodízio, fica sem responsável pra atribuição manual.' },
       { nota: 'Manifestação de urgência Crítica ou teor Denúncia também dispara uma notificação (se o canal de notificação estiver configurado).' },
     ],
   },

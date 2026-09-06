@@ -68,10 +68,18 @@ class ManifestationController extends Controller
         $pin = $this->protocolo->gerarPin();
         $manifestacao->pin_acompanhamento = $this->protocolo->hashPin($pin);
 
-        // Distribuição automática: vai pra quem tem menos caso em aberto no
-        // pool da organização (ver AtribuidorDeManifestacoes). Fica null se
-        // ninguém no pool - a equipe atribui à mão.
-        if ($device->organizacao) {
+        // Manifestação sem nada a tratar (elogio, ou dúvida/sugestão
+        // tranquila) já entra concluída - a equipe só cuida do que é
+        // negativo. Continua aparecendo na lista (status Concluída), o
+        // cidadão acompanha normalmente, e conta como "resolvida" no mural.
+        $autoConcluir = $this->naoRequerTratamento($manifestacao);
+
+        if ($autoConcluir) {
+            $manifestacao->status = 'Concluída';
+        } elseif ($device->organizacao) {
+            // Distribuição automática: vai pra quem tem menos caso em aberto
+            // no pool da organização (ver AtribuidorDeManifestacoes). Fica
+            // null se ninguém no pool - a equipe atribui à mão.
             $manifestacao->responsavel_id = $this->atribuidor->proximoResponsavel($device->organizacao)?->id;
         }
 
@@ -80,7 +88,8 @@ class ManifestationController extends Controller
         ManifestationStatusHistory::create([
             'manifestation_id' => $manifestacao->id,
             'de_status' => null,
-            'para_status' => 'Recebida',
+            'para_status' => $autoConcluir ? 'Concluída' : 'Recebida',
+            'motivo' => $autoConcluir ? 'Concluída automaticamente — manifestação não requer tratamento.' : null,
             'autor_id' => null, // sistema
             // criado_em explícito (não só o default useCurrent do MySQL) -
             // o model tem $timestamps=false, e o valor gerado pelo BANCO
@@ -103,6 +112,30 @@ class ManifestationController extends Controller
         }
 
         return $this->respostaCriacao($manifestacao, existente: false, pin: $pin);
+    }
+
+    /**
+     * "Não requer tratamento" = nada negativo: nunca Reclamação/Denúncia,
+     * nunca sentimento Insatisfeito/Preocupado, nunca urgência Alta/Crítica.
+     * Elogio, Sugestão e Dúvida tranquilas se encaixam.
+     */
+    private function naoRequerTratamento(Manifestation $m): bool
+    {
+        $cat = $m->categoria?->value;
+        $sent = $m->sentimento?->value;
+        $urg = $m->urgencia?->value;
+
+        if (in_array($cat, ['Reclamação', 'Denúncia'], true)) {
+            return false;
+        }
+        if (in_array($sent, ['Insatisfeito', 'Preocupado'], true)) {
+            return false;
+        }
+        if (in_array($urg, ['Alta', 'Crítica'], true)) {
+            return false;
+        }
+
+        return in_array($cat, ['Elogio', 'Sugestão', 'Dúvida'], true);
     }
 
     private function respostaCriacao(Manifestation $m, bool $existente, ?string $pin = null): JsonResponse
