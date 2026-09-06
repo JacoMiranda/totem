@@ -29,6 +29,13 @@ export function Layout({ children }: { children: ReactNode }) {
             <NavLink to="/manifestacoes" className={linkClass}>
               Manifestações
             </NavLink>
+            {/* Relatórios exige analista+ no backend (Gate ver-relatorios);
+                esconder aqui é só UX - a autorização real é lá. */}
+            {temPapelMinimo(user?.role, 'analista') && (
+              <NavLink to="/relatorios" className={linkClass}>
+                Relatórios
+              </NavLink>
+            )}
             {temPapelMinimo(user?.role, 'admin') && (
               <NavLink to="/dispositivos" className={linkClass}>
                 Dispositivos

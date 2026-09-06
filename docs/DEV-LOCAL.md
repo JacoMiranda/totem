@@ -37,6 +37,8 @@ O `DevSeeder` (só em `local`) cria:
 |---|---|
 | **Painel admin** | `admin@totem.test` / `password` |
 | **Totem criado** | `TOTEM-DEV-01` — "Totem - Desenvolvimento" |
+| **Organização** | Totem Dev (plano Profissional) |
+| **Dados de exemplo** | 60 manifestações nos últimos 60 dias, para o painel e os relatórios terem o que mostrar |
 
 ## Primeiro acesso ao kiosk (pareamento)
 

@@ -67,5 +67,7 @@ class DevSeeder extends Seeder
         $this->command->line("  Totem  código: {$device->codigo}");
         $this->command->line('  Totem  nome:   '.$device->nome);
         $this->command->line('  Totem  key:    '.self::DEVICE_KEY);
+
+        $this->call(ManifestacoesDemoSeeder::class);
     }
 }

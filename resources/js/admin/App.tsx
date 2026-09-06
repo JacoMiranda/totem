@@ -5,6 +5,7 @@ import { Devices } from './pages/Devices';
 import { Login } from './pages/Login';
 import { ManifestationDetail } from './pages/ManifestationDetail';
 import { ManifestationsList } from './pages/ManifestationsList';
+import { Relatorios } from './pages/Relatorios';
 
 /**
  * Painel administrativo (Fase 4) - SPA React consumindo a API Laravel
@@ -33,6 +34,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <ManifestationDetail />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/relatorios"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Relatorios />
               </Layout>
             </ProtectedRoute>
           }
