@@ -136,6 +136,33 @@ Registro do que realmente aconteceu em cada atualização de produção — serv
 pra uma sessão nova não repetir passo já feito, nem se assustar com um aviso
 já conhecido.
 
+### 2026-09-07 — equipe + home com vídeo + redesign do mural + ajuda
+
+Pacote `totem-2026-09-06-1728.zip` (59 MB — cresceu por causa de
+`public/midia/`). O passo final de `composer install` do `deploy.ps1`
+falhou de novo (lock de antivírus no Windows) MAS o zip já estava pronto e
+conferido; rodar `composer install` de novo restaura o ambiente local.
+
+Aplicado por `ssh`/`scp`. 3 migrações (todas aditivas):
+`add_atribuicao_to_users` (+ marca analistas existentes no rodízio),
+`add_mural_tema`, `add_mural_orientacao`. Contagens antes = depois
+(orgs 2, users 3, manifs 181). `public/build` e `public/midia` copiados
+pro `public_html/totem/`. Um segundo `scp` do `public/build` recém-feito
+pra pegar o último ajuste da frase do mural.
+
+`ouvidoria:semear-demo --fresh --force` — demo recriada com a equipe
+(Ana admin fora do rodízio + Bruno/Carla analistas no rodízio).
+
+O que entrou: cadastro de equipe + distribuição automática (`/admin/equipe`,
+filtro "Minhas/Todas"), Central de Ajuda (`/admin/ajuda`), home com o vídeo
+do YouTube (`VITE_HOME_VIDEO`) + imagens da recepção, mural redesenhado
+(dashboard claro/escuro, barras "por período", carrossel de elogios,
+"como chegar ao totem" no rodapé, atalho `⚙ painel`).
+
+Verificado: health/planos 200, `/` `/atendimento` `/admin` `/mural/<token>`
+200, `/midia/*` 200, home com o vídeo embutido, `/api/v1/users` 401 sem
+auth e 3 membros com login, `minhas=1` da Ana = 0 (fora do rodízio).
+
 ### 2026-09-06 (noite) — mural público + blindagem do totem + empresa-demo
 
 Pacote `totem-2026-09-06-1411.zip` (`deploy.ps1` — o passo final de
