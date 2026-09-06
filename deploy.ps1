@@ -11,10 +11,26 @@
 # Ver docs/DEPLOY-HOSTINGER.md para o passo a passo no servidor.
 
 param(
-    [switch]$SoAssets
+    [switch]$SoAssets,
+    # Pula a confirmação do VITE_KIOSK_IA_LOCAL (automação/CI).
+    [switch]$SemPerguntar
 )
 
 $ErrorActionPreference = 'Stop'
+
+# npm e composer escrevem avisos normais no stderr (ex.: o aviso de tamanho
+# de chunk do Vite). Com ErrorActionPreference='Stop', o PowerShell embrulha
+# cada linha de stderr de um executável nativo num ErrorRecord e ABORTA o
+# script, mesmo com o comando tendo terminado com sucesso. Por isso os
+# comandos nativos rodam com 'Continue' e a verificação é pelo $LASTEXITCODE.
+function Invoke-Nativo {
+    param([scriptblock]$Comando, [string]$Erro)
+
+    $anterior = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $Comando } finally { $ErrorActionPreference = $anterior }
+    if ($LASTEXITCODE -ne 0) { Write-Error $Erro }
+}
 
 $php84 = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\PHP.PHP.8.4_Microsoft.Winget.Source_8wekyb3d8bbwe"
 if (Test-Path "$php84\php.exe") {
@@ -33,16 +49,17 @@ Write-Host "  As variáveis VITE_* entram no bundle AGORA, no build." -Foregroun
 Write-Host "  VITE_KIOSK_IA_LOCAL no .env atual = '$viteLocal'" -ForegroundColor Yellow
 Write-Host "  Em produção normalmente deve ser 'false' (usa a Gemini)." -ForegroundColor Yellow
 Write-Host ''
-$resposta = Read-Host '  Continuar com esse valor? (s/N)'
-if ($resposta -notmatch '^[sS]') { Write-Host 'Cancelado.'; exit 0 }
+if (-not $SemPerguntar) {
+    $resposta = Read-Host '  Continuar com esse valor? (s/N)'
+    if ($resposta -notmatch '^[sS]') { Write-Host 'Cancelado.'; exit 0 }
+}
 
 # `public/hot` faz o Blade apontar pro dev server do Vite. Se for junto no
 # pacote, o site em produção tenta carregar de 127.0.0.1:5173 e vem branco.
 if (Test-Path 'public/hot') { Remove-Item 'public/hot' -Force }
 
 Write-Host 'Compilando assets...' -ForegroundColor Cyan
-npm run build
-if ($LASTEXITCODE -ne 0) { Write-Error 'Falha no build.' }
+Invoke-Nativo { npm run build } 'Falha no build.'
 
 if ($SoAssets) {
     $zip = Join-Path $saida "totem-assets-$carimbo.zip"
@@ -54,22 +71,53 @@ if ($SoAssets) {
 }
 
 Write-Host 'Instalando dependências de produção (sem dev)...' -ForegroundColor Cyan
-composer install --no-dev --optimize-autoloader --no-interaction
-if ($LASTEXITCODE -ne 0) { Write-Error 'Falha no composer install.' }
+Invoke-Nativo { composer install --no-dev --optimize-autoloader --no-interaction } 'Falha no composer install.'
+
+# `Compress-Archive` descarta itens em silêncio quando a lista mistura
+# pastas e arquivos sem extensão - foi assim que o `artisan` ficou de fora
+# de um pacote (e sem ele nenhum `php artisan migrate` roda no servidor).
+# Copiar para uma pasta de staging e zipar a PASTA, via .NET, é previsível.
+$staging = Join-Path $saida "staging-$carimbo"
+if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $staging | Out-Null
 
 $itens = @(
     'app', 'bootstrap', 'config', 'database', 'public', 'resources', 'routes',
     'storage', 'vendor', 'artisan', 'composer.json', 'composer.lock', '.env.example'
 ) | Where-Object { Test-Path $_ }
 
+Write-Host 'Preparando os arquivos...' -ForegroundColor Cyan
+foreach ($item in $itens) {
+    Copy-Item -Path $item -Destination $staging -Recurse -Force
+}
+
 $zip = Join-Path $saida "totem-$carimbo.zip"
+if (Test-Path $zip) { Remove-Item $zip -Force }
 Write-Host 'Compactando (pode demorar - vendor é grande)...' -ForegroundColor Cyan
-Compress-Archive -Path $itens -DestinationPath $zip -Force
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory($staging, $zip)
+Remove-Item $staging -Recurse -Force
+
+# Confere o pacote antes de declarar sucesso: um zip incompleto só dá as
+# caras no servidor, no meio do deploy.
+$obrigatorios = @('artisan', 'public/index.php', 'public/build/manifest.json',
+                  'vendor/autoload.php', 'database/seeders/PlanoSeeder.php')
+$arquivo = [System.IO.Compression.ZipFile]::OpenRead($zip)
+try {
+    $dentro = $arquivo.Entries.FullName | ForEach-Object { $_.Replace([char]92, '/') }
+    $faltando = $obrigatorios | Where-Object { $alvo = $_; -not ($dentro -contains $alvo) }
+    $temEnv = $dentro | Where-Object { $_ -eq '.env' }
+}
+finally { $arquivo.Dispose() }
+
+if ($faltando) { Write-Error "Pacote incompleto - faltou: $($faltando -join ', ')" }
+if ($temEnv) { Write-Error 'O .env entrou no pacote. Aborte: ele tem a chave da Gemini e a senha do banco.' }
+Write-Host 'Pacote conferido: arquivos essenciais presentes, .env fora.' -ForegroundColor Green
 
 # Restaura as dependências de desenvolvimento, senão os testes param de
 # rodar nesta máquina depois do deploy.
 Write-Host 'Restaurando dependências de desenvolvimento...' -ForegroundColor Cyan
-composer install --no-interaction | Out-Null
+Invoke-Nativo { composer install --no-interaction | Out-Null } 'Falha ao restaurar dependências de dev.'
 
 $tamanho = [math]::Round((Get-Item $zip).Length / 1MB, 1)
 Write-Host ''

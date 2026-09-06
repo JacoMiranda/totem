@@ -9,6 +9,29 @@ processamento em segundo plano passa por **um único cron** (ver
 atualizá-la, siga a seção "Atualizar uma instalação existente"; a seção de
 instalação do zero fica logo depois, para um cliente novo.
 
+## Acesso SSH (mesma conta do política-laravel)
+
+O totem mora na MESMA conta Hostinger que hospeda o projeto irmão
+`política-laravel` — não é preciso provisionar acesso novo, nem pedir senha
+de novo. Nesta máquina já existe um par de chaves dedicado:
+
+```bash
+ssh -i ~/.ssh/id_ed25519_hostinger -p 65002 u928337956@82.25.73.58
+```
+
+Estrutura real no servidor (confirmada por SSH, não pelo que o plano
+original previa):
+- `~/domains/prinatus.com.br/totem_app/` — projeto Laravel completo
+  (`app/`, `vendor/`, `.env`, `artisan`, `.git` — o `.git` é sobra do
+  provisionamento inicial, as atualizações são por **zip**, não `git pull`).
+- `~/domains/prinatus.com.br/public_html/totem/` — raiz do domínio, só o
+  conteúdo de `public/` (inclusive `build/`, copiado à mão depois de cada
+  deploy — não é symlink).
+
+Se uma sessão sem esse acesso ficar travada pedindo "posso adicionar a
+permissão de SSH?", a resposta é: não precisa adicionar nada, essa chave já
+existe nesta máquina — só falta a sessão saber disso.
+
 ---
 
 # Atualizar uma instalação existente
@@ -60,6 +83,16 @@ cp .env .env.backup-$(date +%F)
 
 # 3. Descompacte o pacote por cima. NÃO sobrescreva o .env
 #    (ele não vai no pacote, mas confira depois do unzip).
+#    unzip -oq pacote.zip
+#
+#    AVISO ESPERADO (ignorar): "warning: appears to use backslashes as
+#    path separators". O zip é gerado no Windows via
+#    [System.IO.Compression.ZipFile]::CreateFromDirectory - o unzip do
+#    Linux reclama mas extrai certo mesmo assim (confirmado na pratica:
+#    nenhum arquivo com barra invertida literal no nome, nada corrompido).
+#    Só é REAL problema se `find . -name '*\\*'` achar algo depois.
+#    O comando inteiro sai com status != 0 por causa desse aviso -
+#    não encadeie com && logo depois, ou os passos seguintes não rodam.
 
 # 4. Variáveis novas desta versão, acrescente ao .env:
 #    GEMINI_TEXT_MODEL=gemini-flash-lite-latest
@@ -95,6 +128,47 @@ E no navegador:
 O ponto de retorno é o backup do banco. O código volta com
 `git checkout <commit-anterior>` + novo `deploy.ps1`. Os caches precisam ser
 refeitos em qualquer um dos sentidos.
+
+## Log de deploys
+
+Registro do que realmente aconteceu em cada atualização de produção — serve
+pra uma sessão nova não repetir passo já feito, nem se assustar com um aviso
+já conhecido.
+
+### 2026-09-06 — pacote `totem-2026-09-06-0015.zip`
+
+Feito via SSH (sessão do política-laravel, acesso já existente - ver seção
+"Acesso SSH" no topo deste arquivo). Passos executados, na ordem:
+
+1. Backup ANTES de mexer em qualquer coisa:
+   `~/backups_totem/totem_app_backup_20260906_042649.tar.gz` (sem `vendor/`)
+   e `~/backups_totem/totem_db_backup_20260906_042649.sql` (mysqldump),
+   mais `.env.backup-antes-do-deploy` dentro do próprio `totem_app/`.
+   Ficam no servidor, sem rotação automática - apagar manualmente quando
+   não precisar mais.
+2. `unzip -oq` do pacote por cima de `totem_app/` (aviso de backslash
+   apareceu e foi ignorado, ver nota acima - conferido, nada corrompido).
+3. **Achado real, não estava nos passos originais deste guia**: o `.env`
+   de produção ainda tinha `GEMINI_TEXT_MODEL=gemini-2.5-flash` (modelo
+   descontinuado pelo Google, confirmado pelo comentário em
+   `config/services.php`). Corrigido pra `gemini-flash-lite-latest`
+   (o valor default do próprio `config/services.php` de qualquer forma -
+   se isso quebrar nesta conta de novo, vale conferir esse valor ANTES
+   de suspeitar de código). `VITE_KIOSK_IA_LOCAL=false` também
+   adicionado (não existia ainda no `.env` de produção).
+4. `migrate --force` (rodou limpo, incluindo a de organização) +
+   `PlanoSeeder --force`.
+5. `config:clear/route:clear/view:clear/cache:clear` seguido de
+   `config:cache/route:cache/view:cache`.
+6. `build/` copiado de `totem_app/public/build` pra
+   `public_html/totem/build` (backup do antigo como `build.bak`, sem
+   timestamp - só existe um de cada vez, próximo deploy sobrescreve).
+7. Conferido: `/api/v1/health` → `{"status":"ok","db":true,"storage":true,"gemini":true}`,
+   `/api/v1/planos` → 200, `/`, `/atendimento`, `/admin` → 200.
+
+**Pendente, não feito nesta rodada**: reconfigurar o navegador do totem
+físico pra abrir `/atendimento` direto (ver aviso #1 no topo deste arquivo -
+a raiz do site agora é a home de marketing, não redireciona mais sozinha).
 
 ---
 
