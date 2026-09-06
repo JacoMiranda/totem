@@ -135,6 +135,31 @@ Registro do que realmente aconteceu em cada atualização de produção — serv
 pra uma sessão nova não repetir passo já feito, nem se assustar com um aviso
 já conhecido.
 
+### 2026-09-06 (tarde) — só assets, `totem-assets-2026-09-06-1004.zip`
+
+Deploy de **frontend apenas** (`.\deploy.ps1 -SoAssets`) — nenhuma migração,
+nenhum `.env` novo. Motivo: microfone/ditado não pegavam no celular em
+produção e o `useAudioRecorder` engolia o erro real.
+
+No servidor:
+```bash
+cd ~/domains/prinatus.com.br
+mv public_html/totem/build public_html/totem/build.bak   # 1 de cada vez
+unzip -oq totem-assets-*.zip -d /tmp/novo-build           # gera /tmp/novo-build/build/
+mv /tmp/novo-build/build public_html/totem/build
+# opcional, se o Laravel serve /build por outra via: copiar tb em totem_app/public/build
+```
+Não precisa `artisan` nada — assets são estáticos. Confirmar com
+Ctrl+Shift+R no celular (ou aba anônima): a tela de Relato passa a mostrar
+o erro real do microfone + uma linha de diagnóstico
+(`navegador · seguro · mic · formatos · ditado`).
+
+Mudanças que entraram: erro específico de getUserMedia
+(NotAllowedError/NotFoundError/etc.), MediaRecorder sem forçar mimeType
+não suportado (Safari/iOS), `Permissions-Policy` sem `microphone=(self)`
+(esse header vem do PHP, então SÓ vale de verdade no próximo deploy de
+backend — no -SoAssets ele não muda).
+
 ### 2026-09-06 — pacote `totem-2026-09-06-0015.zip`
 
 Feito via SSH (sessão do política-laravel, acesso já existente - ver seção
