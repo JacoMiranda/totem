@@ -16,7 +16,8 @@ O totem mora na MESMA conta Hostinger que hospeda o projeto irmão
 de novo. Nesta máquina já existe um par de chaves dedicado:
 
 ```bash
-ssh -i ~/.ssh/id_ed25519_hostinger -p 65002 u928337956@82.25.73.58
+# chave dedicada ao totem (a compartilhada com o política-laravel foi aposentada)
+ssh -i ~/.ssh/id_ed25519_hostinger_totem -p 65002 u928337956@82.25.73.58
 ```
 
 Estrutura real no servidor (confirmada por SSH, não pelo que o plano
@@ -29,7 +30,7 @@ original previa):
   deploy — não é symlink).
 
 Se uma sessão sem esse acesso ficar travada pedindo "posso adicionar a
-permissão de SSH?", a resposta é: não precisa adicionar nada, essa chave já
+permissão de SSH?", a resposta é: não precisa adicionar nada, a chave `id_ed25519_hostinger_totem` já
 existe nesta máquina — só falta a sessão saber disso.
 
 ---

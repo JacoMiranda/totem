@@ -18,7 +18,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$Chave  = "$env:USERPROFILE\.ssh\id_ed25519_hostinger"
+$Chave  = "$env:USERPROFILE\.ssh\id_ed25519_hostinger_totem"
 $Porta  = 65002
 $Alvo   = 'u928337956@82.25.73.58'
 $App    = '~/domains/prinatus.com.br/totem_app'
