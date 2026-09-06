@@ -240,9 +240,9 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
           <span>🏛️ Ouvidoria Cidadã</span>
           <div className="flex gap-5">
-            <a href="/acompanhar" className="hover:text-slate-800">
-              Acompanhar protocolo
-            </a>
+            {/* "Acompanhar protocolo" volta aqui quando a página pública
+                existir (Fase 6) - o endpoint já existe, a tela não. Link
+                para 404 é pior que link ausente. */}
             <a href="/admin" className="hover:text-slate-800">
               Entrar no painel
             </a>
