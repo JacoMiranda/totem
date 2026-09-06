@@ -54,6 +54,51 @@ class ManifestationApiTest extends TestCase
         $this->assertDatabaseHas('manifestation_status_history', ['para_status' => 'Recebida', 'de_status' => null]);
     }
 
+    /**
+     * Regressão: a regra antiga exigia `keywords` com 3 a 5 itens. Um relato
+     * curto (ou o fallback local) gera 1-2 -> 422 -> a manifestação inteira
+     * ficava presa na fila local do totem em 'erro' e o cidadão via
+     * "guardado/temporário" mesmo online. Agora 0 a 8 passa.
+     */
+    public function test_aceita_poucas_ou_nenhuma_keyword(): void
+    {
+        [, $chave] = $this->criarDevice();
+
+        foreach ([[], ['fila'], ['fila', 'espera'], null] as $keywords) {
+            $payload = [
+                'clientId' => (string) Str::uuid(),
+                'criadoEm' => now()->toIso8601String(),
+                'consentimentoLgpd' => true,
+                'transcricao' => 'Relato curto de teste.',
+                'sentimento' => 'Neutro',
+                'categoria' => 'Sugestão',
+                'urgencia' => 'Média',
+            ];
+            if ($keywords !== null) {
+                $payload['keywords'] = $keywords;
+            }
+
+            $this->postJson('/api/v1/manifestations', $payload, ['X-Device-Key' => $chave])
+                ->assertCreated();
+        }
+    }
+
+    /** Envio só com áudio (Gemini fora do ar): sem transcrição/resumo/keywords, o cidadão escolheu a classificação. */
+    public function test_cria_manifestacao_so_com_audio_sem_transcricao(): void
+    {
+        [, $chave] = $this->criarDevice();
+
+        $this->postJson('/api/v1/manifestations', [
+            'clientId' => (string) Str::uuid(),
+            'criadoEm' => now()->toIso8601String(),
+            'consentimentoLgpd' => true,
+            'temAudio' => true,
+            'sentimento' => 'Preocupado',
+            'categoria' => 'Reclamação',
+            'urgencia' => 'Média',
+        ], ['X-Device-Key' => $chave])->assertCreated();
+    }
+
     public function test_sem_device_key_e_rejeitado(): void
     {
         $this->postJson('/api/v1/manifestations', [

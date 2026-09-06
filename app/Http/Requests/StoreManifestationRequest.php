@@ -24,8 +24,12 @@ class StoreManifestationRequest extends FormRequest
             'consentimentoLgpd' => ['required', 'accepted'],
             'transcricao' => ['nullable', 'string'],
             'resumo' => ['nullable', 'string'],
-            'keywords' => ['nullable', 'array', 'min:3', 'max:5'],
-            'keywords.*' => ['string'],
+            // Sem piso: o fallback local e o próprio Gemini às vezes devolvem
+            // 1-2 palavras num relato curto. Rejeitar por isso mandava a
+            // manifestação inteira pro limbo (422 -> fila local presa em
+            // 'erro', cidadão via "guardado/temporário" mesmo online).
+            'keywords' => ['nullable', 'array', 'max:8'],
+            'keywords.*' => ['string', 'max:60'],
             'sentimento' => ['nullable', new Enum(Sentiment::class)],
             'categoria' => ['nullable', new Enum(Category::class)],
             'urgencia' => ['nullable', new Enum(Urgency::class)],

@@ -45,6 +45,10 @@ export function Inicio() {
   const comecar = () => {
     if (abriuRef.current) return;
     abriuRef.current = true;
+    // Tela cheia só pode ser pedida a partir de um gesto - o primeiro toque
+    // é a oportunidade. Falha em silêncio (iOS Safari não suporta; e se o
+    // totem já estiver em modo quiosque do SO, não faz diferença).
+    void document.documentElement.requestFullscreen?.().catch(() => {});
     setIniciado(true);
     setRecusou(false);
     void falarAbertura();

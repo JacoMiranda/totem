@@ -14,7 +14,7 @@ export const manifestationDraftSchema = z.object({
   consentimentoLgpd: z.literal(true), // obrigatório pro canal Totem
   transcricao: z.string().min(1).optional(),
   resumo: z.string().optional(),
-  keywords: z.array(z.string()).min(3).max(5).optional(),
+  keywords: z.array(z.string()).max(8).optional(),
   sentimento: z.enum(SENTIMENTS).optional(),
   categoria: z.enum(CATEGORIES).optional(),
   urgencia: z.enum(URGENCIES).optional(),

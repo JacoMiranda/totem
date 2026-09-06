@@ -368,6 +368,13 @@ GEMINI_TTS_MODEL=gemini-2.5-flash-preview-tts
 
 # Kiosk: false = usa a Gemini; true = só processamento local
 VITE_KIOSK_IA_LOCAL=false
+# Kiosk: transcrição offline (Vosk). true no totem físico como rede de
+# segurança pra quando o Gemini cai. Precisa do modelo baixado
+# (php artisan ouvidoria:baixar-modelo-vosk). Ver docs/MODO-QUIOSQUE.md.
+VITE_KIOSK_VOSK=false
+# Kiosk: PIN do painel de manutenção (segurar 3s o canto sup. esquerdo).
+# TROCAR do default. Só entra no bundle do totem.
+VITE_SUPORTE_PIN=<pin numérico>
 
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.hostinger.com

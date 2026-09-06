@@ -9,11 +9,27 @@ há rede), o kiosk cai para processamento **local**, no próprio dispositivo.
 |---|---|---|---|
 | 1 | Online, Gemini OK | `POST /ai/transcribe-analyze` (Gemini) | Gemini |
 | 2 | Gemini falhou / offline, **com áudio** | **Vosk** (WASM, no dispositivo) | `fallbackLocalAnalysis` (léxico local) — `degraded: true` |
-| 3 | Nada disso | — (áudio fica salvo na fila e sincroniza depois) | cidadão digita; `fallbackLocalAnalysis` no "Continuar" |
+| 3 | Gemini falhou, sem Vosk, **com áudio** | — botão **"Enviar sem escrever"**: pula pra Classificação, o áudio sincroniza e a equipe transcreve | cidadão escolhe teor/sentimento na tela; `degraded: true` |
+| 4 | Nada disso | — | cidadão digita; `fallbackLocalAnalysis` no "Continuar" |
 
 Em qualquer caso a manifestação **nunca se perde**: o áudio vai pra
 IndexedDB antes de qualquer rede e é reprocessado pelo servidor quando
 sincroniza (ver `sync.ts`).
+
+### Sincronização (`sync.ts`) — o que garante que "chegou"
+
+- `enviarItem` **persiste protocolo/PIN na fila local assim que a
+  manifestação é criada no servidor**, ANTES de tentar o upload do áudio.
+  Se o áudio falhar depois, o cidadão ainda vê o protocolo real (não o
+  `PENDENTE-` temporário) e o item volta pra `pendente` (retenta só o
+  áudio, sem recriar o registro).
+- `drenarFila` reenvia também itens em `erro` (até `MAX_TENTATIVAS`): um
+  payload rejeitado por um bug de servidor já corrigido num deploy volta a
+  ser aceito sem intervenção.
+- A tela ⏳ "Guardado — número temporário" (`Conclusao.tsx`, prefixo
+  `PENDENTE-`) só aparece quando a criação da manifestação **de fato não
+  passou** (offline, ou erro real na criação) — não quando só o áudio
+  falhou.
 
 ## Transcrição — Vosk
 

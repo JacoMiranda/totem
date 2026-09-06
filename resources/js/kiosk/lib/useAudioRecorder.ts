@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { navegadorDetectado } from './diagnostico';
 
 /**
@@ -121,6 +121,23 @@ export function useAudioRecorder() {
       };
       recorder.stop();
     });
+  }, []);
+
+  // Se a tela sumir no meio da gravação (cidadão cancelou o atendimento,
+  // reset por inatividade, painel de suporte), a MediaStream tem que ser
+  // fechada - senão o microfone fica preso e o indicador do celular não
+  // apaga.
+  useEffect(() => {
+    return () => {
+      try {
+        const rec = mediaRecorderRef.current;
+        if (rec && rec.state !== 'inactive') rec.stop();
+      } catch {
+        /* ok */
+      }
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    };
   }, []);
 
   return { isRecording, erro, iniciar, parar };

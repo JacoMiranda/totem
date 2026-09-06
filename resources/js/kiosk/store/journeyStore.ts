@@ -45,6 +45,8 @@ interface JourneyState {
     degraded: boolean;
   }) => void;
   setClassificacaoManual: (campo: 'sentimento' | 'categoria' | 'urgencia', valor: string) => void;
+  /** Segue pra Classificação sem análise automática (Gemini caiu e o cidadão optou por enviar só o áudio). */
+  pularAnalise: () => void;
   setAudio: (blob: Blob, mimeType: string) => void;
   concluir: (protocolo: string, pin: string | null) => void;
   reiniciar: () => void;
@@ -95,6 +97,7 @@ export const useJourneyStore = create<JourneyState>((set) => ({
 
       return { ...state, urgencia: valor as Urgency };
     }),
+  pularAnalise: () => set({ degraded: true }),
   setAudio: (audioBlob, audioMimeType) => set({ audioBlob, audioMimeType }),
   concluir: (protocolo, pin) => set({ protocolo, pin, etapa: 'conclusao' }),
   reiniciar: () => set({ ...estadoInicial, clientId: crypto.randomUUID() }),

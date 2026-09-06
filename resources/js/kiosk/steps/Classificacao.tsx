@@ -6,6 +6,7 @@ import {
   getSentimentEmoji,
   getUrgencyBadgeClass,
 } from '../../shared';
+import { BarraJornada } from '../components/BarraJornada';
 import db from '../lib/db';
 import { sincronizarUm } from '../lib/sync';
 import { falarFrase, pararFala } from '../lib/vozKiosk';
@@ -32,13 +33,17 @@ export function Classificacao() {
   const confirmarEEnviar = async () => {
     setEnviando(true);
 
+    // Higieniza as keywords: sem vazias/duplicadas, no máximo 8 (o servidor
+    // rejeita acima disso). A IA e o fallback local às vezes repetem termos.
+    const keywords = [...new Set(state.keywords.map((k) => k.trim()).filter(Boolean))].slice(0, 8);
+
     const payload = {
       clientId: state.clientId,
       criadoEm: new Date().toISOString(),
       consentimentoLgpd: state.consentimentoLgpd,
       transcricao: state.transcricao || undefined,
       resumo: state.resumo || undefined,
-      keywords: state.keywords.length ? state.keywords : undefined,
+      keywords: keywords.length ? keywords : undefined,
       sentimento: state.sentimento ?? undefined,
       categoria: state.categoria ?? undefined,
       urgencia: state.urgencia,
@@ -62,20 +67,32 @@ export function Classificacao() {
     setEnviando(false);
   };
 
+  const semTexto = !resumo && !transcricao;
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6 pt-16">
+      <BarraJornada voltarPara="relato" />
       <div className="w-full max-w-lg bg-white rounded-3xl p-8 shadow-xl flex flex-col gap-4">
         <h2 className="text-xl font-extrabold text-slate-900">Confirme a classificação</h2>
 
-        {degraded && (
+        {degraded && !semTexto && (
           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
             A IA não estava disponível - usámos uma classificação simples. Ajuste abaixo se necessário.
           </p>
         )}
 
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700">
-          {resumo || transcricao || 'Sem resumo disponível.'}
-        </div>
+        {semTexto && (
+          <p className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-lg p-2">
+            🎙️ Sua gravação foi guardada e será ouvida pela equipe. Escolha abaixo o teor e o sentimento do seu
+            relato.
+          </p>
+        )}
+
+        {!semTexto && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700">
+            {resumo || transcricao}
+          </div>
+        )}
 
         {keywords.length > 0 && (
           <div className="flex flex-wrap gap-1">

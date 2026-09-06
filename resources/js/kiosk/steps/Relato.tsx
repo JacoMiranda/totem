@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BarraJornada } from '../components/BarraJornada';
 import { fallbackLocalAnalysis } from '../../shared';
 import { api, isNetworkError } from '../lib/api';
 import { audioParaWav } from '../lib/audioParaWav';
@@ -28,7 +29,7 @@ import { useJourneyStore } from '../store/journeyStore';
  * Nunca bloqueia o cidadão (requisito do totem).
  */
 export function Relato() {
-  const { transcricao, setTranscricao, aplicarAnalise, setAudio, irPara } = useJourneyStore();
+  const { transcricao, setTranscricao, aplicarAnalise, setAudio, pularAnalise, audioBlob, irPara } = useJourneyStore();
   const { isRecording, erro: erroMicrofone, iniciar, parar } = useAudioRecorder();
   const ditado = useReconhecimentoFala(setTranscricao);
   const [processando, setProcessando] = useState(false);
@@ -173,8 +174,23 @@ export function Relato() {
     if (ok) irPara('classificacao');
   };
 
+  /**
+   * Plano B quando a transcrição falha (Gemini fora do ar, sem Vosk) e o
+   * cidadão não quer digitar: o áudio já está gravado e vai junto na
+   * sincronização - a equipe ouve e transcreve no painel. O cidadão escolhe
+   * o teor/sentimento na tela seguinte.
+   */
+  const enviarSoAudio = () => {
+    pararFala();
+    pularAnalise();
+    irPara('classificacao');
+  };
+
+  const podeEnviarSoAudio = Boolean(audioBlob) && Boolean(aviso) && !processando && transcricao.trim().length < 5;
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6 pt-16">
+      <BarraJornada />
       <div className="w-full max-w-lg bg-white rounded-3xl p-8 shadow-xl flex flex-col gap-4">
         <h2 className="text-xl font-extrabold text-slate-900">Conte o que aconteceu</h2>
         <p className="text-sm text-slate-500">
@@ -238,6 +254,16 @@ export function Relato() {
         >
           {processando ? 'A analisar…' : 'Continuar'}
         </button>
+
+        {podeEnviarSoAudio && (
+          <button
+            type="button"
+            onClick={enviarSoAudio}
+            className="w-full rounded-xl border-2 border-blue-600 py-3 text-sm font-extrabold text-blue-700"
+          >
+            Enviar sem escrever — a equipe ouve a sua gravação
+          </button>
+        )}
 
         <p className="text-center text-[10px] text-slate-300">{navegadorDetectado()}</p>
       </div>

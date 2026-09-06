@@ -16,6 +16,7 @@ Auth: `Authorization: Bearer <accessToken>` (equipe) **ou** `X-Device-Key: <devi
 
 ### POST `/manifestations`  (device key)
 Idempotente por `clientId`. Se já existe, retorna o registro existente com `200`.
+`keywords` é opcional, 0 a 8 itens (não há piso — relato curto pode gerar 1-2).
 ```jsonc
 // request
 {

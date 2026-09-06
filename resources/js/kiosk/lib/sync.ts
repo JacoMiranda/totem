@@ -10,10 +10,18 @@ import { api, isNetworkError } from './api';
  * insistir automaticamente nesse item - evita loop de retry infinito
  * contra um payload que o servidor rejeita de propósito (ex.: validação).
  */
+/** Além de N tentativas o item para de ser reenviado sozinho (precisa de ação no painel de suporte). */
+const MAX_TENTATIVAS = 12;
+
 export async function drenarFila(): Promise<void> {
   const pendentes = await db.fila.where('status').anyOf(['pendente', 'enviando']).toArray();
+  // Itens em 'erro' também voltam pra fila algumas vezes: o payload pode ter
+  // sido rejeitado por um bug de servidor já corrigido num deploy (ex.: a
+  // regra antiga de `keywords` mínimo 3). Não insistir pra sempre.
+  const comErro = await db.fila.where('status').equals('erro').toArray();
 
-  for (const item of pendentes) {
+  for (const item of [...pendentes, ...comErro]) {
+    if (item.tentativas >= MAX_TENTATIVAS) continue;
     await enviarItem(item);
   }
 }
@@ -38,16 +46,22 @@ async function enviarItem(item: FilaManifestacao): Promise<void> {
 
   try {
     let manifestacaoId = item.id;
-    let protocolo = item.protocolo;
-    let pin = item.pin;
 
     if (!manifestacaoId) {
       const resposta = manifestationCreatedResponseSchema.parse(
         (await api.post('/manifestations', item.payload)).data,
       );
       manifestacaoId = resposta.id;
-      protocolo = resposta.protocolo;
-      pin = resposta.pin ?? item.pin;
+      // Persiste protocolo/PIN JÁ, antes de tentar o áudio. O registro existe
+      // no servidor a partir daqui; se o upload do áudio falhar em seguida, o
+      // cidadão ainda recebe o protocolo REAL (não o "PENDENTE-" temporário) e
+      // o retry não recria a manifestação (idempotente por clientId de todo
+      // jeito, mas assim nem tenta).
+      await db.fila.update(item.clientId, {
+        id: manifestacaoId,
+        protocolo: resposta.protocolo,
+        pin: resposta.pin ?? item.pin ?? undefined,
+      });
     }
 
     if (item.audioBlob && manifestacaoId) {
@@ -57,19 +71,22 @@ async function enviarItem(item: FilaManifestacao): Promise<void> {
       await api.post(`/manifestations/${manifestacaoId}/audio`, form);
     }
 
-    await db.fila.update(item.clientId, {
-      status: 'sincronizado',
-      id: manifestacaoId,
-      protocolo,
-      pin: pin ?? undefined,
-      audioBlob: undefined,
-    });
+    await db.fila.update(item.clientId, { status: 'sincronizado', audioBlob: undefined });
   } catch (erro) {
+    const atual = await db.fila.get(item.clientId);
+    const manifestacaoCriada = Boolean(atual?.id);
+    const mensagem = erro instanceof Error ? erro.message : 'Erro desconhecido ao sincronizar.';
+
     if (isNetworkError(erro)) {
       // sem rede - volta pra "pendente", tenta de novo na próxima janela de conectividade.
       await db.fila.update(item.clientId, { status: 'pendente', tentativas: item.tentativas + 1 });
+    } else if (manifestacaoCriada) {
+      // A manifestação JÁ foi registrada no servidor - só um passo seguinte
+      // (quase sempre o upload do áudio) falhou. Não é perda do relato;
+      // continua tentando o áudio, sem recriar nada.
+      await db.fila.update(item.clientId, { status: 'pendente', erro: mensagem, tentativas: item.tentativas + 1 });
     } else {
-      const mensagem = erro instanceof Error ? erro.message : 'Erro desconhecido ao sincronizar.';
+      // Falhou já na criação e não é rede: payload rejeitado (validação etc.).
       await db.fila.update(item.clientId, { status: 'erro', erro: mensagem, tentativas: item.tentativas + 1 });
     }
   }
