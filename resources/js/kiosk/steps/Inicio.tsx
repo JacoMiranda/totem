@@ -1,34 +1,81 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { falarFrase, pararFala } from '../lib/vozKiosk';
+import { falarFrase, falarSequencia, pararFala } from '../lib/vozKiosk';
 import { useJourneyStore } from '../store/journeyStore';
 
 /**
- * Etapa 1 (Início) - consentimento LGPD (obrigatório) + identificação
- * opcional (pessoa/empresa, ver RequerenteController) antes de seguir pro
- * Relato. O modo anônimo continua sendo o padrão (botão "Continuar
- * anônimo" sempre disponível, sem preencher nada).
+ * Etapa 1 (Início). Sequência pensada para quem não lê bem — tudo é falado:
+ *
+ *   1. Tela em espera: "Toque para começar" (o autoplay do navegador só
+ *      libera depois de um gesto, então a fala começa no primeiro toque).
+ *   2. Toque -> fala as boas-vindas e, em seguida, LÊ o texto do
+ *      consentimento LGPD por inteiro.
+ *   3. Aparecem duas opções GRANDES: "Sim, concordo" / "Não concordo".
+ *
+ * O consentimento é obrigatório e explícito - não é checkbox pré-marcado,
+ * é uma escolha ativa entre dois botões (LGPD art. 8º: consentimento
+ * informado e inequívoco). Identificar-se continua opcional.
  */
 export function Inicio() {
-  const { consentimentoLgpd, setConsentimento, requerente, setRequerente, irPara } = useJourneyStore();
+  const { setConsentimento, requerente, setRequerente, irPara } = useJourneyStore();
+  const [iniciado, setIniciado] = useState(false);
+  const [recusou, setRecusou] = useState(false);
+  const [falando, setFalando] = useState(false);
   const [mostrarIdentificacao, setMostrarIdentificacao] = useState(false);
   const [tipo, setTipo] = useState<'person' | 'company'>('person');
   const [nome, setNome] = useState('');
   const [documento, setDocumento] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const boasVindasTocadas = useRef(false);
-
-  // Autoplay é bloqueado até o primeiro gesto - por isso as boas-vindas
-  // disparam no primeiro toque da tela (o gatilho de "presença" possível
-  // num totem web), não na montagem.
-  const aoPrimeiroToque = () => {
-    if (boasVindasTocadas.current) return;
-    boasVindasTocadas.current = true;
-    void falarFrase('boas-vindas');
-  };
+  const abriuRef = useRef(false);
 
   useEffect(() => pararFala, []);
+
+  /**
+   * Boas-vindas + leitura do consentimento, encadeadas. `falarSequencia`
+   * aborta a fila se a fala for interrompida - se o cidadão tocar em
+   * "Concordo" no meio, nada mais é falado por cima da próxima tela.
+   */
+  const falarAbertura = async () => {
+    setFalando(true);
+    await falarSequencia('boas-vindas', 'inicio-consentimento');
+    setFalando(false);
+  };
+
+  const comecar = () => {
+    if (abriuRef.current) return;
+    abriuRef.current = true;
+    setIniciado(true);
+    setRecusou(false);
+    void falarAbertura();
+  };
+
+  /**
+   * Pode ser tocado a qualquer momento, inclusive no meio da leitura: a
+   * fala é interrompida na hora e a jornada segue. Prender o botão até o
+   * áudio acabar obrigaria todo mundo a ouvir ~25s de texto legal a cada
+   * atendimento; o consentimento é informado porque a pessoa TEM ACESSO ao
+   * conteúdo (texto na tela + botão "Ouvir novamente"), não porque foi
+   * forçada a ouvir tudo.
+   */
+  const aceitar = () => {
+    pararFala();
+    setFalando(false);
+    setConsentimento(true);
+    irPara('relato');
+  };
+
+  const recusar = async () => {
+    pararFala(); // corta a leitura em andamento antes do aviso de recusa
+    setFalando(false);
+    setConsentimento(false);
+    setRecusou(true);
+    setIniciado(false);
+    abriuRef.current = false;
+    setMostrarIdentificacao(false);
+    setRequerente(null);
+    await falarFrase('consentimento-recusado');
+  };
 
   const identificar = async () => {
     setErro(null);
@@ -49,27 +96,56 @@ export function Inicio() {
     }
   };
 
-  return (
-    <main
-      className="min-h-screen flex items-center justify-center bg-slate-50 p-6"
-      onPointerDown={aoPrimeiroToque}
-    >
-      <div className="w-full max-w-lg bg-white rounded-3xl p-8 shadow-xl flex flex-col gap-5 text-center">
-        <div className="text-5xl">🏛️</div>
-        <h1 className="text-2xl font-extrabold text-slate-900">Ouvidoria Cidadã</h1>
-        <p className="text-sm text-slate-500">
-          O seu relato ajuda a melhorar o atendimento público. Pode falar ou escrever livremente na próxima etapa.
-        </p>
+  // ---------------------------------------------------------------- espera
+  if (!iniciado) {
+    return (
+      <main
+        className="min-h-screen flex items-center justify-center bg-slate-50 p-6 cursor-pointer"
+        onPointerDown={comecar}
+      >
+        <div className="w-full max-w-lg text-center flex flex-col items-center gap-6">
+          <div className="text-7xl">🏛️</div>
+          <h1 className="text-3xl font-extrabold text-slate-900">Ouvidoria Cidadã</h1>
 
+          {recusou && (
+            <p className="text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              Sem a sua concordância não podemos registrar o relato. Se mudar de ideia, é só tocar na tela.
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={comecar}
+            className="w-full max-w-md rounded-3xl bg-blue-600 py-10 text-2xl font-extrabold text-white shadow-xl animate-pulse"
+          >
+            Toque para começar
+          </button>
+          <p className="text-sm text-slate-500">O seu relato ajuda a melhorar o atendimento público.</p>
+        </div>
+      </main>
+    );
+  }
+
+  // -------------------------------------------------- consentimento (LGPD)
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+      <div className="w-full max-w-2xl bg-white rounded-3xl p-8 shadow-xl flex flex-col gap-5">
+        <header className="text-center">
+          <div className="text-4xl">🏛️</div>
+          <h1 className="text-2xl font-extrabold text-slate-900 mt-1">Antes de começar</h1>
+        </header>
+
+        {/* Identificação é opcional e vem ANTES do aceite, porque o texto do
+            consentimento fala em "se eu optar por me identificar acima". */}
         {requerente ? (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl p-3 flex items-center justify-between">
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-2xl p-3 flex items-center justify-between">
             <span>Identificado(a) como {requerente.label}</span>
             <button type="button" className="underline text-xs" onClick={() => setRequerente(null)}>
               remover
             </button>
           </div>
         ) : mostrarIdentificacao ? (
-          <div className="text-left flex flex-col gap-2 bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <div className="text-left flex flex-col gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-4">
             <div className="flex gap-2 text-xs font-bold">
               <button
                 type="button"
@@ -121,32 +197,58 @@ export function Inicio() {
           <button
             type="button"
             onClick={() => setMostrarIdentificacao(true)}
-            className="text-sm text-blue-700 underline"
+            className="text-sm text-blue-700 underline self-center"
           >
             Desejo me identificar (opcional)
           </button>
         )}
 
-        <label className="flex items-start gap-2 text-left text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3">
-          <input
-            type="checkbox"
-            checked={consentimentoLgpd}
-            onChange={(e) => setConsentimento(e.target.checked)}
-            className="mt-0.5"
-          />
-          Concordo que meu relato seja registrado para fins de melhoria do atendimento público, conforme a Lei Geral
-          de Proteção de Dados (LGPD). Meus dados de identificação são opcionais e só ficam vinculados se eu optar
-          por me identificar acima.
-        </label>
+        {/* Texto lido em voz alta por `inicio-consentimento` - manter os dois
+            em sintonia (config/kiosk_audio.php). */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+          <p className="text-base text-slate-800 leading-relaxed">
+            Concordo que meu relato seja registrado para fins de melhoria do atendimento público, conforme a
+            Lei Geral de Proteção de Dados (LGPD). Meus dados de identificação são opcionais e só ficam
+            vinculados se eu optar por me identificar acima.
+          </p>
+          {/* Enquanto lê, o mesmo botão vira "parar": dá controle ao cidadão
+              sem trancar a jornada esperando o áudio acabar. */}
+          <button
+            type="button"
+            onClick={() => {
+              if (falando) {
+                pararFala();
+                setFalando(false);
 
-        <button
-          type="button"
-          disabled={!consentimentoLgpd}
-          onClick={() => irPara('relato')}
-          className="w-full rounded-xl bg-blue-600 py-4 text-base font-extrabold text-white disabled:opacity-40"
-        >
-          Iniciar meu relato
-        </button>
+                return;
+              }
+              setFalando(true);
+              void falarFrase('inicio-consentimento').then(() => setFalando(false));
+            }}
+            className="mt-3 text-sm font-bold text-blue-700 underline"
+          >
+            {falando ? '⏸ Parar leitura' : '🔊 Ouvir novamente'}
+          </button>
+        </div>
+
+        <p className="text-center text-sm font-bold text-slate-700">Você concorda?</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={aceitar}
+            className="rounded-3xl bg-emerald-600 hover:bg-emerald-700 py-8 text-xl font-extrabold text-white shadow-lg transition-all"
+          >
+            ✓ Sim, concordo
+          </button>
+          <button
+            type="button"
+            onClick={recusar}
+            className="rounded-3xl bg-white border-2 border-slate-300 hover:bg-slate-50 py-8 text-xl font-extrabold text-slate-700 shadow-sm transition-all"
+          >
+            ✕ Não concordo
+          </button>
+        </div>
       </div>
     </main>
   );

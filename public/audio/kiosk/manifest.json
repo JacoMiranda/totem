@@ -1,6 +1,6 @@
 {
     "voz": "Aoede",
-    "geradoEm": "2026-08-28T21:44:23+00:00",
+    "geradoEm": "2026-09-06T01:47:44+00:00",
     "frases": {
         "boas-vindas": {
             "arquivo": "boas-vindas.wav",
@@ -30,11 +30,18 @@
             "bytes": 390330,
             "sampleRate": 24000
         },
+        "consentimento-recusado": {
+            "arquivo": "consentimento-recusado.wav",
+            "texto": "Sem a sua concordância não podemos registrar o relato. Obrigado pela sua visita. Se mudar de ideia, é só tocar na tela novamente.",
+            "hash": "8779271c104827c071c023e99fb1b68d764543c8",
+            "bytes": 426810,
+            "sampleRate": 24000
+        },
         "inicio-consentimento": {
             "arquivo": "inicio-consentimento.wav",
-            "texto": "Antes de começar, confirme que concorda com o registro do seu relato. A identificação dos seus dados é opcional.",
-            "hash": "191502d0416ecea5d402e6351fdff2359aa7b5d7",
-            "bytes": 382650,
+            "texto": "Concordo que meu relato seja registrado para fins de melhoria do atendimento público, conforme a Lei Geral de Proteção de Dados. Meus dados de identificação são opcionais e só ficam vinculados se eu optar por me identificar. Você concorda? Toque em Sim, concordo, ou em Não concordo.",
+            "hash": "032d7b9a93fb512528b744fd382c22ea29f7c64f",
+            "bytes": 918330,
             "sampleRate": 24000
         },
         "relato-gravando": {

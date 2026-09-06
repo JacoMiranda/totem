@@ -26,7 +26,12 @@ return [
     // manifest.json consumido por resources/js/kiosk/lib/vozKiosk.ts.
     'frases' => [
         'boas-vindas' => 'Olá! Seja bem-vindo à Ouvidoria Cidadã. Toque na tela para começar o seu relato.',
-        'inicio-consentimento' => 'Antes de começar, confirme que concorda com o registro do seu relato. A identificação dos seus dados é opcional.',
+        // Texto do consentimento LGPD lido em voz alta - tem que bater com o
+        // que está escrito na tela (Inicio.tsx). Consentimento informado só
+        // vale se a pessoa tiver acesso real ao conteúdo; quem não lê bem
+        // depende deste áudio.
+        'inicio-consentimento' => 'Concordo que meu relato seja registrado para fins de melhoria do atendimento público, conforme a Lei Geral de Proteção de Dados. Meus dados de identificação são opcionais e só ficam vinculados se eu optar por me identificar. Você concorda? Toque em Sim, concordo, ou em Não concordo.',
+        'consentimento-recusado' => 'Sem a sua concordância não podemos registrar o relato. Obrigado pela sua visita. Se mudar de ideia, é só tocar na tela novamente.',
         'relato-instrucao' => 'Toque no microfone e conte o que aconteceu. Se preferir, pode escrever no campo abaixo.',
         'relato-gravando' => 'Pode falar. Toque novamente no microfone quando terminar.',
         'relato-processando' => 'Um momento, estou a processar o seu relato.',

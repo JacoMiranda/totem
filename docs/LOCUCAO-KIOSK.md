@@ -41,6 +41,8 @@ Enquanto faltam, `falarConclusao()` cai automaticamente na frase genérica
 | Frase | Quando |
 |---|---|
 | `boas-vindas` | primeiro toque na tela inicial (autoplay exige gesto do usuário) |
+| `inicio-consentimento` | logo após as boas-vindas — **lê o texto da LGPD inteiro**, encadeado (`await falarFrase(...)`), antes de mostrar "Sim, concordo" / "Não concordo" |
+| `consentimento-recusado` | quando o cidadão toca em "Não concordo" |
 | `relato-instrucao` | entra na etapa Relato |
 | `relato-processando` | parou a gravação |
 | `relato-sem-microfone` | falha de microfone |
@@ -52,3 +54,31 @@ A fala é sempre **um extra**: se o WAV faltar → `speechSynthesis` nativo do
 navegador; nunca lança, nunca bloqueia a jornada. O Service Worker (PWA) cacheia
 os WAV em runtime (`CacheFirst`, ver `vite.config.ts`), então após a 1ª
 reprodução funcionam offline.
+
+## Consentimento LGPD falado
+
+O texto do consentimento é **lido em voz alta** antes de o cidadão escolher, e o
+aceite é uma escolha ativa entre dois botões grandes — não um checkbox. Quem não
+lê bem depende do áudio: consentimento só é informado se a pessoa teve acesso
+real ao conteúdo.
+
+O texto falado (`inicio-consentimento` em `config/kiosk_audio.php`) e o texto
+escrito (`Inicio.tsx`) precisam dizer a mesma coisa — ao mudar um, mude o outro
+e rode `ouvidoria:gerar-audios-kiosk --only=inicio-consentimento`.
+
+`falarFrase()` resolve quando a locução **termina**, o que permite encadear
+boas-vindas → consentimento sem sobrepor as vozes.
+
+### Interromper a fala
+
+`falarFrase()` devolve `true` se a locução terminou sozinha e `false` se foi
+**interrompida**. `falarSequencia(...ids)` usa isso para abortar a fila quando
+alguém interrompe — sem isso, tocar em "Concordo" no meio das boas-vindas
+silenciava a fala atual mas deixava a PRÓXIMA da fila começar, sobrepondo-se à
+locução da tela seguinte (três vozes ao mesmo tempo).
+
+Regra: os botões que avançam a jornada **nunca esperam o áudio acabar**. Eles
+chamam `pararFala()` e seguem. Travar o botão obrigaria todo cidadão a ouvir o
+texto legal inteiro a cada atendimento; o consentimento é informado porque a
+pessoa tem *acesso* ao conteúdo (texto na tela + "Ouvir novamente"), não porque
+foi forçada a ouvir tudo.
