@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { setDeviceConfig } from '../lib/deviceConfig';
+import { setDeviceConfig } from '../../shared/deviceConfig';
 import {
   entrar,
   listarDevicesPareaveis,

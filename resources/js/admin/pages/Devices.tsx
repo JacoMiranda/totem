@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
+import { setDeviceConfig } from '../../shared/deviceConfig';
 
 interface Dispositivo {
   id: string;
@@ -17,6 +18,7 @@ export function Devices() {
   const [novoCodigo, setNovoCodigo] = useState('');
   const [novoNome, setNovoNome] = useState('');
   const [chaveRevelada, setChaveRevelada] = useState<{ codigo: string; chave: string } | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   const recarregar = () => {
     setCarregando(true);
@@ -41,6 +43,33 @@ export function Devices() {
     setChaveRevelada({ codigo, chave: data.deviceKey });
   };
 
+  /**
+   * "Abrir totem": pareia ESTA máquina com o dispositivo e vai pro kiosk.
+   *
+   * Pede confirmação porque o efeito não é óbvio - quem clica achando que
+   * é só uma pré-visualização transformaria o próprio computador naquele
+   * totem e, de quebra, desconectaria a máquina que já estivesse usando
+   * aquele registro (o pareamento emite chave nova e invalida a anterior).
+   */
+  const abrirTotem = async (d: Dispositivo) => {
+    const ok = window.confirm(
+      `Abrir "${d.nome}" nesta máquina?
+
+` +
+        'Este computador passa a ser esse totem e vai direto para a tela de atendimento. ' +
+        'Se o totem já estiver aberto em outra máquina, aquela será desconectada.',
+    );
+    if (!ok) return;
+
+    try {
+      const { data } = await api.post(`/devices/${d.id}/pair`);
+      setDeviceConfig({ codigo: data.codigo, nome: data.nome, deviceKey: data.deviceKey });
+      window.location.href = '/atendimento';
+    } catch {
+      setErro('Não foi possível abrir este totem.');
+    }
+  };
+
   const alternarAtivo = async (id: string, ativo: boolean) => {
     await api.patch(`/devices/${id}`, { ativo: !ativo });
     recarregar();
@@ -49,6 +78,8 @@ export function Devices() {
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
       <h1 className="text-xl font-extrabold text-slate-900">Dispositivos (totems)</h1>
+
+      {erro && <p className="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm p-3">{erro}</p>}
 
       {chaveRevelada && (
         <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-sm">
@@ -103,7 +134,15 @@ export function Devices() {
                   </span>
                 </td>
                 <td className="p-3 text-xs text-slate-500">{d.ultimaSyncEm ? new Date(d.ultimaSyncEm).toLocaleString('pt-BR') : 'nunca'}</td>
-                <td className="p-3 flex gap-2">
+                <td className="p-3 flex gap-2 items-center">
+                  <button
+                    type="button"
+                    disabled={!d.ativo}
+                    onClick={() => abrirTotem(d)}
+                    className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 disabled:opacity-40 transition-colors"
+                  >
+                    Abrir totem
+                  </button>
                   <button type="button" onClick={() => rotacionar(d.id, d.codigo)} className="text-xs text-blue-700 underline">
                     Nova chave
                   </button>

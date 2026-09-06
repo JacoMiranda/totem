@@ -7,6 +7,10 @@
  * ver DeviceApiKeyAuth). Diferente da chave Gemini (essa sim nunca sai do
  * servidor, ver GeminiAiService) - a device key É um segredo do CLIENTE
  * por design.
+ *
+ * Fica em `shared/` porque os DOIS apps escrevem aqui: o kiosk, ao parear
+ * pela própria tela de login, e o painel, no botão "Abrir totem" da tela
+ * de Dispositivos (mesma origem, mesmo localStorage).
  */
 
 const STORAGE_KEY = 'totem:device-config';

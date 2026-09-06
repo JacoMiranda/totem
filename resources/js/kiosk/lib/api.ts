@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getDeviceConfig } from './deviceConfig';
+import { getDeviceConfig } from '../../shared/deviceConfig';
 import { IA_TIMEOUT_MS } from './ia';
 
 /**

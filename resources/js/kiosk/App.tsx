@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SetupScreen } from './components/SetupScreen';
-import { getDeviceConfig } from './lib/deviceConfig';
+import { getDeviceConfig } from '../shared/deviceConfig';
 import { IA_LOCAL_APENAS } from './lib/ia';
 import { precarregarVosk } from './lib/offline/vosk';
 import { iniciarSincronizacaoEmSegundoPlano } from './lib/sync';
