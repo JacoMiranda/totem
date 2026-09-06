@@ -56,6 +56,9 @@ export function Layout({ children }: { children: ReactNode }) {
                 Logs
               </NavLink>
             )}
+            <NavLink to="/ajuda" className={linkClass}>
+              Ajuda
+            </NavLink>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">

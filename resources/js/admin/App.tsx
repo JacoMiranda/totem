@@ -1,6 +1,7 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { Ajuda } from './pages/Ajuda';
 import { Devices } from './pages/Devices';
 import { Equipe } from './pages/Equipe';
 import { Logs } from './pages/Logs';
@@ -87,6 +88,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Equipe />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ajuda"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Ajuda />
               </Layout>
             </ProtectedRoute>
           }
