@@ -3,6 +3,11 @@
 Ambiente fictício pronto para gravação de vídeo, demonstração comercial e
 prints de marketing. Empresa: **Rede Aurora** (varejo, 4 lojas).
 
+> Precisa de um **roteiro de vídeo pronto pra colar numa IA** (Sora,
+> Runway, HeyGen…)? É o [ROTEIRO-VIDEO.md](ROTEIRO-VIDEO.md) — autocontido,
+> sem depender do ambiente. Este documento aqui é o roteiro *operacional*
+> (o que clicar no sistema real).
+
 ## Como preparar
 
 ```bash
@@ -16,15 +21,16 @@ O comando imprime tudo no fim. Resumo:
 
 | Acesso | Onde | Credenciais |
 |---|---|---|
-| **Painel** (admin) | `/admin` | `demo@aurora.test` / `demo1234` |
-| **Painel** (analista) | `/admin` | `analista@aurora.test` / `demo1234` |
+| **Painel** (admin — Ana) | `/admin` | `demo@aurora.test` / `demo1234` |
+| **Painel** (analista — Bruno) | `/admin` | `analista@aurora.test` / `demo1234` |
+| **Painel** (analista — Carla) | `/admin` | `carla@aurora.test` / `demo1234` |
 | **Mural público** | `/mural/demoredeauroraouvidoria` | — (link direto) |
 | **Totem** | `/atendimento` | device key `demo-aurora-recepcao` (ou `-centro`, `-norte`, `-shopping`) |
 
 Dados: ~170 manifestações nos últimos 150 dias, 4 totens (Recepção, Matriz
 Centro, Filial Norte, Loja Shopping), respostas oficiais nos casos
-resolvidos, mistura realista de teor (reclamação, elogio, dúvida,
-sugestão, denúncia) e status.
+resolvidos, mistura realista de teor e status. Ana coordena (fora do
+rodízio); Bruno e Carla recebem os casos automaticamente, equilibrado.
 
 Números que o mural mostra (variam um pouco a cada `--fresh`):
 ~92% respondidas · ~82% resolvidas · ~93% no prazo · ~82% das reclamações
@@ -54,9 +60,14 @@ enxerga o que está acontecendo."
   inatividade — "é um totem, tem que se virar sozinho".
 
 **3. O painel (60s)** — Entrar em `/admin` como `demo@aurora.test`.
-- **Manifestações**: a lista já cheia, filtros por teor/status/urgência.
-  Abrir uma reclamação → resumo, áudio original, histórico, campo de
-  resposta oficial.
+- **Manifestações**: a lista já cheia, filtros por teor/status/urgência, e
+  a coluna **Responsável** já preenchida (distribuição automática). Entrar
+  como `analista@aurora.test` mostra o toggle **"Minhas / Todas"** — o
+  analista abre só a fila dele.
+- **Equipe**: cadastro dos funcionários, quem está no rodízio, e
+  "transferir carga" de um analista para outro.
+- Abrir uma reclamação → resumo, áudio original, histórico, atribuir por
+  nome, campo de resposta oficial.
 - **Relatórios**: os gráficos (volume no tempo, por teor, por sentimento,
   SLA). "A empresa vê padrão: 'toda segunda de manhã a fila do caixa
   estoura' — e aí dá pra agir."
