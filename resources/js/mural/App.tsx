@@ -322,7 +322,7 @@ function Sentimento({ clima }: { clima: MuralDados['clima'] }) {
  * troca por fade. Muito mais legível numa TV do que texto rolando - e
  * deixa a fonte grande em qualquer tamanho de tela.
  */
-const TROCA_ELOGIO_MS = 9000;
+const TROCA_ELOGIO_MS = 15000;
 
 function Esteira({ elogios, escuro }: { elogios: MuralDados['elogios']; escuro: boolean }) {
   const [i, setI] = useState(0);
@@ -342,23 +342,23 @@ function Esteira({ elogios, escuro }: { elogios: MuralDados['elogios']; escuro: 
       className="flex shrink-0 items-stretch border-b"
       style={{ background: 'var(--card)', borderColor: 'var(--borda)' }}
     >
-      <span className="flex shrink-0 items-center bg-blue-600 px-[3vmin] text-[1.7vmin] font-extrabold uppercase tracking-widest text-white">
+      <span className="flex shrink-0 items-center bg-blue-600 px-[3vmin] text-[1.9vmin] font-extrabold uppercase tracking-widest text-white">
         O que dizem
         <br />
         de nós
       </span>
 
-      <div className="relative flex flex-1 items-center overflow-hidden px-[4vmin] py-[2vmin]">
+      <div className="relative flex flex-1 items-center overflow-hidden px-[4vmin] py-[2.4vmin]">
         <div key={i} className="animate-[trocaElogio_0.6s_ease] w-full">
           <p
-            className="text-[2.9vmin] font-medium leading-snug line-clamp-2"
+            className="text-[3.5vmin] font-medium leading-snug line-clamp-2"
             style={{ color: escuro ? '#dbe6f6' : '#334155' }}
           >
             <span className="text-blue-400">“</span>
             {e.texto}
             <span className="text-blue-400">”</span>
           </p>
-          <p className="mt-[0.8vmin] text-[1.7vmin]" style={{ color: 'var(--muted)' }}>
+          <p className="mt-[1vmin] text-[1.9vmin]" style={{ color: 'var(--muted)' }}>
             {[e.unidade, formatarData(e.quando)].filter(Boolean).join(' · ')}
           </p>
         </div>
