@@ -7,9 +7,9 @@
 #   .\deploy-remoto.ps1 -Pacote dist\totem-2026-09-06-1022.zip
 #   .\deploy-remoto.ps1 -SoBuild   # só recompila e copia public/build (rápido)
 #
-# Precisa de acesso SSH (a chave ~/.ssh/id_ed25519_hostinger já existe nesta
-# máquina). No Claude Code, exige uma regra de permissão pra Bash(ssh...) /
-# Bash(scp...) - ver docs/DEPLOY-HOSTINGER.md.
+# Precisa de acesso SSH: a chave ~/.ssh/id_ed25519_hostinger_totem (dedicada
+# ao totem) já existe nesta máquina. No Claude Code, exige uma regra de
+# permissão pra Bash(ssh...) / Bash(scp...) - ver docs/DEPLOY-HOSTINGER.md.
 
 param(
     [string]$Pacote,
@@ -58,18 +58,24 @@ $nomePacote = Split-Path $Pacote -Leaf
 Write-Host "Pacote: $nomePacote ($([math]::Round((Get-Item $Pacote).Length/1MB,1)) MB)" -ForegroundColor Cyan
 
 Write-Host 'Backup no servidor (banco + .env + código)...' -ForegroundColor Cyan
+# A senha do .env de prod tem caractere que o parse_ini_file / cut de shell
+# não lê - pegamos via config() do Laravel e escrevemos um
+# --defaults-extra-file temporário (0600, apagado logo em seguida).
 Remoto @"
 set -e
 mkdir -p ~/backups_totem
 cd $App
 cp .env .env.backup-$carimbo
-DBHOST=`$(grep -E '^DB_HOST=' .env | cut -d= -f2)
-DBNAME=`$(grep -E '^DB_DATABASE=' .env | cut -d= -f2)
-DBUSER=`$(grep -E '^DB_USERNAME=' .env | cut -d= -f2)
-DBPASS=`$(grep -E '^DB_PASSWORD=' .env | cut -d= -f2-)
-mysqldump -h "`$DBHOST" -u "`$DBUSER" -p"`$DBPASS" "`$DBNAME" > ~/backups_totem/db-$carimbo.sql
-tar -czf ~/backups_totem/app-$carimbo.tar.gz --exclude=vendor --exclude=node_modules .
-echo "BACKUP-OK: ~/backups_totem/db-$carimbo.sql (`$(du -h ~/backups_totem/db-$carimbo.sql | cut -f1))"
+php artisan tinker --execute='`$c=config("database.connections.mysql"); file_put_contents(getenv("HOME")."/.mdt.cnf", "[client]
+user=".`$c["username"]."
+password=\"".`$c["password"]."\"
+host=".`$c["host"]."
+"); chmod(getenv("HOME")."/.mdt.cnf", 0600); echo `$c["database"];' > /tmp/dbn 2>/dev/null
+DBNAME=`$(tail -1 /tmp/dbn)
+mysqldump --defaults-extra-file=`$HOME/.mdt.cnf --single-transaction --no-tablespaces "`$DBNAME" > ~/backups_totem/db-$carimbo.sql
+rm -f ~/.mdt.cnf /tmp/dbn
+tar -czf ~/backups_totem/app-$carimbo.tar.gz --exclude=vendor --exclude=node_modules --exclude=.git .
+echo "BACKUP-OK: db-$carimbo.sql (`$(du -h ~/backups_totem/db-$carimbo.sql | cut -f1), `$(grep -c 'CREATE TABLE' ~/backups_totem/db-$carimbo.sql) tabelas)"
 "@
 
 Write-Host 'Enviando o pacote (pode demorar)...' -ForegroundColor Cyan
