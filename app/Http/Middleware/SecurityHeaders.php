@@ -11,9 +11,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Headers de segurança básicos (docs/PLANO-SISTEMA-PROFISSIONAL.md, Fase
  * 8: "headers (helmet), CSP").
  *
- * - `microphone=(self)` no Permissions-Policy é proposital - o kiosk
- *   PRECISA do microfone (MediaRecorder, ver useAudioRecorder.ts) pro
- *   próprio domínio; só bloqueia terceiros embutidos.
+ * - O Permissions-Policy só bloqueia o que NÃO usamos (geolocation,
+ *   camera). Microfone fica no default (`self`) - ver comentário no set().
  * - `style-src 'unsafe-inline'`: Tailwind/Vite geram algum CSS inline;
  *   restringir mais exigiria nonce por request, fora de escopo por ora.
  * - `script-src` inclui `'wasm-unsafe-eval'` e `blob:`: a transcrição
@@ -32,7 +31,12 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'geolocation=(), camera=(), microphone=(self)');
+        // `microphone` NÃO entra aqui: o default do Permissions-Policy para
+        // microfone já é `self`, e declarar `microphone=(self)` explicitamente
+        // não adiciona nada e ainda arrisca um parser antigo (WebView de app,
+        // Android velho) interpretar `(self)` errado e BLOQUEAR o microfone -
+        // que é a função principal do totem. Só bloqueamos o que não usamos.
+        $response->headers->set('Permissions-Policy', 'geolocation=(), camera=()');
         $response->headers->set('Content-Security-Policy', $this->csp());
 
         return $response;

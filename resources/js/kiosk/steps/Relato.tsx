@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { fallbackLocalAnalysis } from '../../shared';
 import { api } from '../lib/api';
 import { audioParaWav } from '../lib/audioParaWav';
-import { navegadorDetectado } from '../lib/diagnostico';
+import { diagnosticoNavegador, navegadorDetectado } from '../lib/diagnostico';
 import { IA_LOCAL_APENAS } from '../lib/ia';
 import { transcreverAudioOffline } from '../lib/offline/vosk';
 import { useReconhecimentoFala } from '../lib/reconhecimentoFala';
@@ -174,6 +174,12 @@ export function Relato() {
         </p>
         {ditado.erro && <p className="text-center text-xs text-amber-600">{ditado.erro}</p>}
         {erroMicrofone && <p className="text-center text-xs text-amber-600">{erroMicrofone}</p>}
+
+        {(ditado.erro || erroMicrofone) && (
+          <p className="text-center text-[10px] text-slate-400 break-words select-all">
+            {diagnosticoNavegador()}
+          </p>
+        )}
 
         <textarea
           className="min-h-32 rounded-xl border border-slate-300 p-3 text-sm"

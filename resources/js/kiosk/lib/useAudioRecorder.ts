@@ -1,13 +1,18 @@
 import { useCallback, useRef, useState } from 'react';
+import { navegadorDetectado } from './diagnostico';
 
 /**
- * Porta fiel do fluxo de gravação do protótipo (startRecording/
- * stopRecording em cabine_de_ouvidoria_inteligente.html): getUserMedia com
- * echo cancellation/noise suppression/auto gain, MIME type escolhido por
- * suporte (webm > mp4 > ogg), MediaRecorder.start(250) (chunks a cada
- * 250ms). Pré-aquecimento do stream (prewarmedAudioStream do protótipo)
- * fica de fora aqui por simplicidade - reabrir o microfone a cada gravação
- * é aceitável nesta primeira versão.
+ * Gravação de áudio com MediaRecorder. Grava o arquivo que vai pro arquivo
+ * (e pra transcrição server-side, quando a Gemini está ligada).
+ *
+ * Cuidados de compatibilidade aprendidos na marra:
+ *  - Safari/iOS: `new MediaRecorder(stream, { mimeType: 'audio/webm' })`
+ *    LANÇA se o tipo não é suportado. Então só passamos `mimeType` quando
+ *    algum é de fato suportado; senão deixamos o navegador escolher.
+ *  - O erro do getUserMedia NÃO pode ser engolido: sem o `name` do
+ *    DOMException ('NotAllowedError', 'NotFoundError', 'SecurityError'...)
+ *    "o microfone não funciona no celular" é impossível de diagnosticar.
+ *    Ele vira mensagem na tela.
  */
 export function useAudioRecorder() {
   const [isRecording, setIsRecording] = useState(false);
@@ -16,35 +21,81 @@ export function useAudioRecorder() {
   const chunksRef = useRef<BlobPart[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
+  /** Retorna um mimeType suportado ou '' (deixa o navegador decidir). */
   const escolherMimeType = (): string => {
-    if (MediaRecorder.isTypeSupported('audio/webm')) return 'audio/webm';
-    if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
-    if (MediaRecorder.isTypeSupported('audio/ogg')) return 'audio/ogg';
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+    for (const t of ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/aac']) {
+      if (MediaRecorder.isTypeSupported(t)) return t;
+    }
 
-    return 'audio/webm';
+    return '';
+  };
+
+  const explicar = (e: unknown): string => {
+    const nome = (e as DOMException)?.name;
+    switch (nome) {
+      case 'NotAllowedError':
+      case 'SecurityError':
+        return 'Permissão de microfone negada. Toque no cadeado da barra de endereço e permita o microfone.';
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return 'Nenhum microfone encontrado neste aparelho.';
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return 'O microfone está em uso por outro aplicativo. Feche os outros e tente de novo.';
+      case 'NotSupportedError':
+        return `${navegadorDetectado()} não suporta gravação de áudio aqui. Escreva o seu relato no campo abaixo.`;
+      default:
+        if (!window.isSecureContext) {
+          return 'A gravação só funciona em conexão segura (https). Escreva o seu relato abaixo.';
+        }
+
+        return `Não consegui usar o microfone (${nome ?? 'erro desconhecido'}). Escreva o seu relato abaixo.`;
+    }
   };
 
   const iniciar = useCallback(async () => {
     setErro(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErro(
+        window.isSecureContext
+          ? `${navegadorDetectado()} não expõe o microfone. Escreva o seu relato abaixo.`
+          : 'A gravação só funciona em conexão segura (https). Escreva o seu relato abaixo.',
+      );
+
+      return;
+    }
+
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
-      streamRef.current = stream;
+    } catch (e) {
+      setErro(explicar(e));
 
+      return;
+    }
+
+    streamRef.current = stream;
+
+    try {
       const mimeType = escolherMimeType();
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       chunksRef.current = [];
 
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      recorder.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) chunksRef.current.push(ev.data);
       };
 
       mediaRecorderRef.current = recorder;
       recorder.start(250);
       setIsRecording(true);
-    } catch {
-      setErro('Microfone indisponível. Pode digitar o seu relato normalmente.');
+    } catch (e) {
+      stream.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setErro(explicar(e));
     }
   }, []);
 
@@ -53,13 +104,15 @@ export function useAudioRecorder() {
     return new Promise((resolve) => {
       const recorder = mediaRecorderRef.current;
       if (!recorder || recorder.state === 'inactive') {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
         resolve(null);
 
         return;
       }
 
       recorder.onstop = () => {
-        const mimeType = recorder.mimeType;
+        const mimeType = recorder.mimeType || 'audio/webm';
         const blob = new Blob(chunksRef.current, { type: mimeType });
         streamRef.current?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;

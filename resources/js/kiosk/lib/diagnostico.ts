@@ -22,11 +22,18 @@ export function navegadorDetectado(): string {
 export function diagnosticoNavegador(): string {
   const w = window as unknown as Record<string, unknown>;
 
+  const mr =
+    typeof MediaRecorder === 'undefined'
+      ? 'sem MediaRecorder'
+      : ['audio/webm', 'audio/mp4', 'audio/ogg']
+          .filter((t) => MediaRecorder.isTypeSupported?.(t))
+          .join(',') || 'nenhum formato';
+
   return [
     navegadorDetectado(),
-    `SpeechRecognition=${typeof w.SpeechRecognition}`,
-    `webkit=${typeof w.webkitSpeechRecognition}`,
     `seguro=${window.isSecureContext}`,
-    `origem=${window.location.origin}`,
+    `mic=${typeof navigator.mediaDevices?.getUserMedia === 'function'}`,
+    `gravar: ${mr}`,
+    `ditado=${typeof (w.SpeechRecognition ?? w.webkitSpeechRecognition)}`,
   ].join(' · ');
 }
