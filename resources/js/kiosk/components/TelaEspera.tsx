@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 
 /**
- * Tela de espera do totem. Além de "toque para começar", mostra os números
- * de transparência da própria empresa (GET /mural/resumo) - a pessoa vê que
- * a ouvidoria responde ANTES de registrar, e um botão bem destacado pra
- * fazer a manifestação dali mesmo.
+ * Tela de espera do totem. O foco é o convite claro pra registrar ("Sua
+ * opinião é importante" + botão grande + os quatro tipos de manifestação).
+ * Os números de transparência (GET /mural/resumo) entram DEPOIS, no rodapé,
+ * discretos - reforçam que a ouvidoria responde, sem roubar a atenção do
+ * botão.
  *
- * Tudo é degradável: sem rede / sem dados, cai na tela simples. O `<main>`
- * inteiro continua sendo área de toque.
+ * Tudo é degradável: sem rede / sem dados, o rodapé some. O `<main>` inteiro
+ * continua sendo área de toque.
  */
 interface Resumo {
   titulo: string;
@@ -20,6 +21,13 @@ interface Resumo {
   };
   elogios: { texto: string; unidade: string | null }[];
 }
+
+const TIPOS = [
+  { emoji: '😊', rotulo: 'Elogio', cor: '#22c55e' },
+  { emoji: '💡', rotulo: 'Sugestão', cor: '#3b82f6' },
+  { emoji: '😟', rotulo: 'Reclamação', cor: '#f43f5e' },
+  { emoji: '❓', rotulo: 'Dúvida', cor: '#f59e0b' },
+];
 
 export function TelaEspera({ onComecar, recusou }: { onComecar: () => void; recusou: boolean }) {
   const [resumo, setResumo] = useState<Resumo | null>(null);
@@ -39,7 +47,7 @@ export function TelaEspera({ onComecar, recusou }: { onComecar: () => void; recu
 
   useEffect(() => {
     if (!resumo || resumo.elogios.length < 2) return;
-    const t = window.setInterval(() => setElogio((v) => (v + 1) % resumo.elogios.length), 7000);
+    const t = window.setInterval(() => setElogio((v) => (v + 1) % resumo.elogios.length), 8000);
 
     return () => window.clearInterval(t);
   }, [resumo]);
@@ -49,16 +57,18 @@ export function TelaEspera({ onComecar, recusou }: { onComecar: () => void; recu
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center bg-gradient-to-b from-emerald-50 to-slate-50 p-6 cursor-pointer"
+      className="min-h-screen flex flex-col items-center justify-between bg-gradient-to-b from-sky-50 to-white p-8 cursor-pointer"
       onPointerDown={onComecar}
     >
-      <div className="w-full max-w-2xl text-center flex flex-col items-center gap-6">
-        <div className="text-6xl">🏛️</div>
+      <div className="flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-7 text-center">
+        <div className="flex items-center gap-3 text-blue-700">
+          <span className="text-4xl">📣</span>
+          <span className="text-2xl font-extrabold leading-tight">{resumo?.titulo ?? 'Ouvidoria'}</span>
+        </div>
+
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900">
-            {resumo?.titulo ?? 'Ouvidoria Cidadã'}
-          </h1>
-          <p className="text-lg text-emerald-800 font-semibold mt-1">Aqui a sua voz é ouvida.</p>
+          <h1 className="text-4xl font-extrabold text-slate-900 leading-tight">Sua opinião é importante!</h1>
+          <p className="mt-3 text-lg text-slate-600">Conte pra gente o que você achou do nosso atendimento.</p>
         </div>
 
         {recusou && (
@@ -67,39 +77,53 @@ export function TelaEspera({ onComecar, recusou }: { onComecar: () => void; recu
           </p>
         )}
 
-        {temNumeros && (
-          <div className="grid grid-cols-3 gap-3 w-full">
-            <Indicador valor={pct(i?.respondidasPct)} rotulo="respondidas" />
-            <Indicador valor={pct(i?.noPrazoPct)} rotulo="no prazo" />
-            <Indicador valor={tempo(i?.tempoMedioRespostaHoras)} rotulo="resposta média" />
-          </div>
-        )}
-
-        {resumo && resumo.elogios.length > 0 && (
-          <p className="text-sm text-slate-500 italic min-h-10 px-4 transition-opacity">
-            “{resumo.elogios[elogio % resumo.elogios.length].texto}”
-          </p>
-        )}
-
         <button
           type="button"
           onClick={onComecar}
-          className="w-full max-w-lg rounded-3xl bg-emerald-600 py-10 text-2xl font-extrabold text-white shadow-xl animate-pulse"
+          className="w-full rounded-3xl bg-emerald-600 py-9 text-2xl font-extrabold text-white shadow-xl shadow-emerald-600/30 animate-pulse"
         >
-          📣 Fazer minha manifestação
+          🎙️ Fazer minha manifestação
         </button>
-        <p className="text-sm text-slate-500">Toque em qualquer lugar para começar — leva menos de 1 minuto.</p>
-      </div>
-    </main>
-  );
-}
 
-function Indicador({ valor, rotulo }: { valor: string; rotulo: string }) {
-  return (
-    <div className="rounded-2xl bg-white border border-emerald-100 shadow-sm p-3">
-      <p className="text-2xl font-extrabold text-emerald-700 tabular-nums">{valor}</p>
-      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{rotulo}</p>
-    </div>
+        <div className="flex w-full justify-around">
+          {TIPOS.map((t) => (
+            <div key={t.rotulo} className="flex flex-col items-center gap-2">
+              <span
+                className="flex h-14 w-14 items-center justify-center rounded-full text-2xl"
+                style={{ background: `${t.cor}22` }}
+              >
+                {t.emoji}
+              </span>
+              <span className="text-xs font-bold text-slate-500">{t.rotulo}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-sm text-slate-400">Toque em qualquer lugar para começar — leva menos de 1 minuto.</p>
+      </div>
+
+      {temNumeros && (
+        <div className="w-full max-w-xl border-t border-slate-200 pt-4 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Aqui a sua voz é ouvida</p>
+          <div className="mt-2 flex justify-center gap-6 text-sm text-slate-500">
+            <span>
+              <b className="text-emerald-700">{pct(i?.respondidasPct)}</b> respondidas
+            </span>
+            <span>
+              <b className="text-emerald-700">{pct(i?.noPrazoPct)}</b> no prazo
+            </span>
+            <span>
+              <b className="text-emerald-700">{tempo(i?.tempoMedioRespostaHoras)}</b> resposta média
+            </span>
+          </div>
+          {resumo && resumo.elogios.length > 0 && (
+            <p className="mt-2 text-xs italic text-slate-400 line-clamp-1">
+              “{resumo.elogios[elogio % resumo.elogios.length].texto}”
+            </p>
+          )}
+        </div>
+      )}
+    </main>
   );
 }
 
