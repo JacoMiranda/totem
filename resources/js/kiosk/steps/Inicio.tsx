@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { TelaEspera } from '../components/TelaEspera';
 import { api } from '../lib/api';
 import { falarFrase, falarSequencia, pararFala } from '../lib/vozKiosk';
 import { useJourneyStore } from '../store/journeyStore';
@@ -102,32 +103,7 @@ export function Inicio() {
 
   // ---------------------------------------------------------------- espera
   if (!iniciado) {
-    return (
-      <main
-        className="min-h-screen flex items-center justify-center bg-slate-50 p-6 cursor-pointer"
-        onPointerDown={comecar}
-      >
-        <div className="w-full max-w-lg text-center flex flex-col items-center gap-6">
-          <div className="text-7xl">🏛️</div>
-          <h1 className="text-3xl font-extrabold text-slate-900">Ouvidoria Cidadã</h1>
-
-          {recusou && (
-            <p className="text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-              Sem a sua concordância não podemos registrar o relato. Se mudar de ideia, é só tocar na tela.
-            </p>
-          )}
-
-          <button
-            type="button"
-            onClick={comecar}
-            className="w-full max-w-md rounded-3xl bg-blue-600 py-10 text-2xl font-extrabold text-white shadow-xl animate-pulse"
-          >
-            Toque para começar
-          </button>
-          <p className="text-sm text-slate-500">O seu relato ajuda a melhorar o atendimento público.</p>
-        </div>
-      </main>
-    );
+    return <TelaEspera onComecar={comecar} recusou={recusou} />;
   }
 
   // -------------------------------------------------- consentimento (LGPD)

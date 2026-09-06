@@ -111,6 +111,27 @@ class MuralApiTest extends TestCase
         $this->assertSame(0, $this->getJson('/api/v1/mural/orgbbbbbbbbbb1')->json('indicadores.respondidasPct'));
     }
 
+    public function test_totem_ve_o_resumo_pela_device_key_mesmo_com_mural_desligado(): void
+    {
+        $org = $this->org(['mural_ativo' => false]);
+        $chave = 'chave-'.Str::random(16);
+        Device::withoutGlobalScopes()->create([
+            'organizacao_id' => $org->id,
+            'codigo' => 'TOTEM-RESUMO',
+            'nome' => 'Totem',
+            'unidade' => 'Recepção',
+            'api_key_hash' => hash('sha256', $chave),
+            'ativo' => true,
+        ]);
+        $this->manifestacao($org);
+
+        $this->getJson('/api/v1/mural/resumo', ['X-Device-Key' => $chave])
+            ->assertOk()
+            ->assertJsonStructure(['titulo', 'indicadores' => ['respondidasPct'], 'elogios']);
+
+        $this->getJson('/api/v1/mural/resumo')->assertUnauthorized();
+    }
+
     public function test_admin_liga_o_mural_e_recebe_link(): void
     {
         $org = $this->org();

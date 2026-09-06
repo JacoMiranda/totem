@@ -43,6 +43,29 @@ class MuralController extends Controller
         return response()->json($dados);
     }
 
+    /**
+     * Mesmos números do mural, mas pra tela de espera do PRÓPRIO totem
+     * (autenticado por device key). Mostra à pessoa que a empresa responde
+     * antes dela registrar - e não depende de o mural público estar ligado.
+     */
+    public function paraTotem(Request $request): JsonResponse
+    {
+        $device = $request->attributes->get('device');
+        $org = $device?->organizacao;
+
+        if (! $org) {
+            return response()->json(['error' => ['code' => 'SEM_ORGANIZACAO']], 404);
+        }
+
+        $dados = Cache::remember(
+            "mural:org:{$org->id}",
+            self::CACHE_SEGUNDOS,
+            fn () => $this->mural->paraOrganizacao($org),
+        );
+
+        return response()->json($dados);
+    }
+
     public function config(Request $request): JsonResponse
     {
         Gate::authorize('gerenciar-mural');

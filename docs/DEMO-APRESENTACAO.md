@@ -38,7 +38,11 @@ que ninguém lê, telefone que não atende. O cidadão desiste, a empresa não
 enxerga o que está acontecendo."
 
 **2. O totem (60s)** — Abrir `/atendimento` (device key acima).
-- Tela de espera → toque → a voz dá as boas-vindas e **lê o termo LGPD**.
+- **Tela de espera**: já mostra "Ouvidoria Rede Aurora", os números
+  (90% respondidas, 91% no prazo, resposta média ~2 dias), um elogio, e o
+  botão grande **"Fazer minha manifestação"**. "A pessoa vê que a empresa
+  responde antes de registrar."
+- Toque → a voz dá as boas-vindas e **lê o termo LGPD**.
 - Dois botões grandes: **Sim, concordo** / Não concordo. Tocar em Sim.
 - Tela de relato: segurar o microfone e falar uma reclamação curta
   ("esperei muito na fila do caixa hoje de manhã").

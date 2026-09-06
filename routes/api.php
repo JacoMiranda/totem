@@ -45,6 +45,9 @@ Route::prefix('v1')->group(function () {
     // Totem (device key).
     Route::middleware('device.key')->group(function () {
         Route::post('/manifestations', [ManifestationController::class, 'store']);
+        // Números de transparência da própria organização, pra tela de espera
+        // do totem (ver MuralController::paraTotem). Não depende de mural_ativo.
+        Route::get('/mural/resumo', [MuralController::class, 'paraTotem']);
         // Erros do navegador do totem -> canal `kiosk` -> /admin/logs.
         Route::post('/client-errors', [ClientErrorController::class, 'store'])->middleware('throttle:30,1');
         Route::post('/manifestations/{manifestation}/audio', [ManifestationController::class, 'uploadAudio'])->whereUuid('manifestation');

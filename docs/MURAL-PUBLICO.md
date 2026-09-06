@@ -49,6 +49,20 @@ social. É semi-público: quem tem o link vê. `<meta name="robots"
 noindex>` na página. Se vazar, o admin gera um link novo
 (`POST /api/v1/mural/token`) e o anterior morre na hora.
 
+## Na tela de espera do totem
+
+Os mesmos números aparecem na **tela de espera do próprio totem** (antes
+de "Toque para começar"), com um botão grande **"📣 Fazer minha
+manifestação"**. A pessoa vê que a empresa responde 90%+ das
+manifestações *antes* de registrar a dela — e registra dali mesmo.
+
+- Endpoint: `GET /api/v1/mural/resumo` (device key, no grupo do totem).
+  Usa a organização do device, **não depende de `mural_ativo`** (é a
+  própria empresa vendo os seus números).
+- `resources/js/kiosk/components/TelaEspera.tsx` — versão clara e enxuta
+  (3 indicadores + 1 elogio rotativo + o botão). Degrada pra tela simples
+  se a chamada falhar (offline).
+
 ## Como funciona por dentro
 
 - **Front**: SPA própria em `resources/js/mural/` (entrada no
