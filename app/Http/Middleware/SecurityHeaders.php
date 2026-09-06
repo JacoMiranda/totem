@@ -98,6 +98,9 @@ class SecurityHeaders
             "font-src 'self' data:",
             "connect-src {$connect}",
             "media-src 'self' blob:",
+            // O vídeo da home pode ser embutido do YouTube (VITE_HOME_VIDEO).
+            // O player local (public/midia/*.mp4) não usa frame nenhum.
+            "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
             "frame-ancestors 'none'",
         ]);
     }

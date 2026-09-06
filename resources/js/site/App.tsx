@@ -3,6 +3,40 @@ import { Cadastro } from './Cadastro';
 import { type Plano, carregarPlanos } from './api';
 
 /**
+ * Vídeo de apresentação. Por padrão toca o arquivo local
+ * (public/midia/apresentacao.mp4). Se `VITE_HOME_VIDEO` estiver definido
+ * (ID ou URL do YouTube), embuti o player do YouTube - útil quando o
+ * arquivo ficar grande demais pra servir do próprio site.
+ */
+function VideoApresentacao() {
+  const bruto = (import.meta.env.VITE_HOME_VIDEO ?? '').trim();
+  const idYoutube = bruto.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/)?.[1] ?? (/^[\w-]{11}$/.test(bruto) ? bruto : '');
+
+  return (
+    <div className="mt-12 max-w-3xl mx-auto rounded-3xl overflow-hidden border border-slate-200 shadow-xl shadow-slate-900/10 bg-black aspect-video">
+      {idYoutube ? (
+        <iframe
+          className="w-full h-full"
+          src={`https://www.youtube-nocookie.com/embed/${idYoutube}`}
+          title="Como funciona o totem de ouvidoria"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      ) : (
+        <video
+          className="w-full h-full object-cover"
+          controls
+          preload="metadata"
+          poster="/midia/recepcao-totem.png"
+        >
+          <source src="/midia/apresentacao.mp4" type="video/mp4" />
+        </video>
+      )}
+    </div>
+  );
+}
+
+/**
  * Home de marketing + cadastro self-service. O totem físico continua
  * abrindo direto em /atendimento; esta página é para quem está avaliando
  * o produto.
@@ -85,6 +119,8 @@ export default function App() {
           <p className="mt-4 text-xs text-slate-400">
             Conta de teste descartável. Sem cartão de crédito.
           </p>
+
+          <VideoApresentacao />
         </div>
       </section>
 
@@ -131,8 +167,36 @@ export default function App() {
         </ol>
       </section>
 
+      {/* ----------------------------------------------- na recepção */}
+      <section className="max-w-6xl mx-auto px-5 pb-4">
+        <h2 className="text-3xl font-extrabold text-slate-900 text-center">Assim fica na recepção</h2>
+        <p className="mt-3 text-center text-slate-600 max-w-2xl mx-auto">
+          O totem (ou a cabine, para mais privacidade) na entrada, e uma TV com o painel de transparência à
+          vista de todos.
+        </p>
+        <div className="mt-12 grid md:grid-cols-2 gap-6">
+          <figure className="rounded-3xl overflow-hidden border border-slate-200 shadow-lg shadow-slate-900/5">
+            <img
+              src="/midia/recepcao-totem.png"
+              alt="Totem de ouvidoria na recepção, com o painel de transparência numa TV ao fundo"
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </figure>
+          <figure className="rounded-3xl overflow-hidden border border-slate-200 shadow-lg shadow-slate-900/5">
+            <img
+              src="/midia/recepcao-cabine.png"
+              alt="Cabine de manifestação fechada para mais privacidade, e a recepção acompanhando os indicadores"
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </figure>
+        </div>
+        <p className="mt-4 text-center text-xs text-slate-400">Imagens ilustrativas.</p>
+      </section>
+
       {/* ---------------------------------------------------- benefícios */}
-      <section className="bg-slate-50 border-y border-slate-200">
+      <section className="bg-slate-50 border-y border-slate-200 mt-16">
         <div className="max-w-6xl mx-auto px-5 py-20">
           <h2 className="text-3xl font-extrabold text-slate-900 text-center">Por que um totem de voz</h2>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
