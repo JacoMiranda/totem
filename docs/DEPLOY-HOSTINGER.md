@@ -135,6 +135,34 @@ Registro do que realmente aconteceu em cada atualização de produção — serv
 pra uma sessão nova não repetir passo já feito, nem se assustar com um aviso
 já conhecido.
 
+### 2026-09-06 (aplicado por SSH) — `totem-2026-09-06-1022.zip` + hotfix
+
+Aplicado direto por SSH desta máquina (deploy.ps1 gerou, deploy manual via
+ssh/scp - a permissão Bash(ssh/scp) foi adicionada em
+`.claude/settings.local.json`). Passos reais:
+
+1. Backup: `~/backups_totem/db-20260906-1456.sql` (mysqldump — a senha do
+   `.env` tem caractere que o `parse_ini_file` do PHP não lê; peguei via
+   `config('database.connections.mysql.password')` e escrevi um
+   `--defaults-extra-file` temporário) + `.env.backup-20260906-1457`.
+2. Contagens antes = depois (users 1, organizacoes 1, devices 2,
+   manifestations 0, planos 3) — nenhum dado mexido.
+3. `unzip -oq` (aviso de backslash, ignorado — `find -name '*\*'` limpo),
+   `migrate --force` → "Nothing to migrate", `PlanoSeeder --force`,
+   caches, `public/build` → `public_html/totem/build`.
+4. **Bug encontrado no ar**: `/api/v1/*` sob `auth:sanctum`, batido SEM
+   `Accept: application/json` (barra de endereço do navegador), dava 500
+   ("Route [login] not defined") em vez de 401. A SPA nunca viu (axios
+   manda o header). Hotfix: `redirectGuestsTo(fn () => null)` em
+   `bootstrap/app.php`, enviado isolado por scp + `route:cache`. Agora
+   `/api/v1/logs` sem auth → 401.
+
+Verificado: health ok, `/planos` 200, `/logs` 401, `/atendimento` `/admin`
+`/` 200, bundle novo (`main-q94GCb4_.js`) sendo servido.
+
+Pendente ainda: reapontar o navegador do totem físico pra `/atendimento`
+(a raiz virou a home).
+
 ### 2026-09-06 (noite) — pacote completo `totem-2026-09-06-1022.zip`
 
 Deploy de **backend + frontend** (mexeu em rotas, `config/logging.php`,
