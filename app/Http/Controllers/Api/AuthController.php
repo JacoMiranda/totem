@@ -87,6 +87,8 @@ class AuthController extends Controller
             'email' => $user->email,
             'role' => $user->role->value,
             'unidade' => $user->unidade,
+            // true = time da plataforma (sem organização) - vê o back-office.
+            'plataforma' => $user->daPlataforma() && $user->role->value === 'admin',
         ];
     }
 }

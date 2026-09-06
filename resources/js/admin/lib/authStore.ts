@@ -20,6 +20,7 @@ export interface AdminUser {
   email: string;
   role: string;
   unidade: string | null;
+  plataforma?: boolean;
 }
 
 interface AuthState {

@@ -409,6 +409,25 @@ export const ARTIGOS: Artigo[] = [
     ],
   },
   {
+    id: 'plataforma',
+    titulo: 'Back-office da plataforma (comercial / suporte)',
+    publico: 'tecnico',
+    categoria: 'Operação',
+    tags: ['plataforma', 'comercial', 'cliente', 'pacote', 'plano', 'suspender', 'back-office', 'conta'],
+    corpo: [
+      { p: 'O menu "Plataforma" aparece só pra quem é do TIME DA PLATAFORMA: usuário admin SEM organização. Promova alguém com:' },
+      { codigo: 'php artisan ouvidoria:promover-plataforma pessoa@exemplo.com' },
+      {
+        ul: [
+          'Contas — todas as organizações-cliente: pacote, status, totens usados/limite, nº de manifestações, data de cadastro. Busca por nome/CNPJ/slug.',
+          'Conta (detalhe) — editar nome e CNPJ, trocar o pacote, mudar o status (Ativa / Trial / Suspensa — suspensa faz os totens pararem), ajustar a data de expiração do trial, ver os usuários e totens, e redefinir a senha do admin da conta (devolve uma senha temporária uma vez).',
+          'Pacotes — editar limite de totens, preço (R$/mês, vazio = "sob consulta"), dias de trial e a lista de recursos que aparece na home.',
+        ],
+      },
+      { nota: 'Sem organização, o usuário da plataforma também enxerga manifestações e totens de TODAS as contas nas telas normais (escopo PorOrganizacao). Use com responsabilidade.' },
+    ],
+  },
+  {
     id: 'problemas-comuns',
     titulo: 'Problemas comuns e o que checar',
     publico: 'tecnico',

@@ -59,6 +59,11 @@ export function Layout({ children }: { children: ReactNode }) {
             <NavLink to="/ajuda" className={linkClass}>
               Ajuda
             </NavLink>
+            {user?.plataforma && (
+              <NavLink to="/plataforma" className={linkClass}>
+                Plataforma
+              </NavLink>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">

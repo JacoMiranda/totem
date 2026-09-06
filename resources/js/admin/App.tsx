@@ -8,6 +8,8 @@ import { Logs } from './pages/Logs';
 import { Login } from './pages/Login';
 import { Mural } from './pages/Mural';
 import { Perfil } from './pages/Perfil';
+import { Plataforma } from './pages/Plataforma';
+import { PlataformaOrg } from './pages/PlataformaOrg';
 import { ManifestationDetail } from './pages/ManifestationDetail';
 import { ManifestationsList } from './pages/ManifestationsList';
 import { Relatorios } from './pages/Relatorios';
@@ -109,6 +111,26 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Perfil />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plataforma"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Plataforma />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plataforma/:id"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <PlataformaOrg />
               </Layout>
             </ProtectedRoute>
           }

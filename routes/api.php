@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\Admin\ManifestationController as AdminManifestationController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\Plataforma\OrganizacaoController as PlataformaOrganizacaoController;
+use App\Http\Controllers\Api\Plataforma\PlanoController as PlataformaPlanoController;
 use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
@@ -123,6 +125,17 @@ Route::prefix('v1')->group(function () {
         Route::get('/mural', [MuralController::class, 'config']);
         Route::patch('/mural', [MuralController::class, 'atualizar']);
         Route::post('/mural/token', [MuralController::class, 'regenerarToken']);
+
+        // Back-office da plataforma (time comercial/suporte - usuário sem
+        // organização). Gate gerenciar-plataforma em cada controller.
+        Route::prefix('plataforma')->group(function () {
+            Route::get('/organizacoes', [PlataformaOrganizacaoController::class, 'index']);
+            Route::get('/organizacoes/{organizacao}', [PlataformaOrganizacaoController::class, 'show'])->whereUuid('organizacao');
+            Route::patch('/organizacoes/{organizacao}', [PlataformaOrganizacaoController::class, 'update'])->whereUuid('organizacao');
+            Route::post('/organizacoes/{organizacao}/resetar-senha-admin', [PlataformaOrganizacaoController::class, 'resetarSenhaAdmin'])->whereUuid('organizacao');
+            Route::get('/planos', [PlataformaPlanoController::class, 'index']);
+            Route::patch('/planos/{plano}', [PlataformaPlanoController::class, 'update'])->whereUuid('plano');
+        });
     });
 
     // Consulta pública (sem auth) - rate-limited contra enumeração de
