@@ -25,3 +25,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Pacotes gerados pelo deploy.ps1
+/dist
