@@ -5,6 +5,101 @@ sem Redis, sem worker permanente. Fila, cache e sessão usam o banco; o
 processamento em segundo plano passa por **um único cron** (ver
 `routes/console.php`).
 
+**Já existe uma instalação no ar em `totem.prinatus.com.br`.** Para
+atualizá-la, siga a seção "Atualizar uma instalação existente"; a seção de
+instalação do zero fica logo depois, para um cliente novo.
+
+---
+
+# Atualizar uma instalação existente
+
+## ⚠️ Antes de subir: três coisas que quebram
+
+### 1. A raiz do site muda de comportamento
+
+Hoje `https://totem.prinatus.com.br/` **redireciona para `/atendimento`**.
+Depois da atualização ela passa a mostrar a **home de marketing**.
+
+Se o navegador do totem físico estiver configurado para abrir a raiz do
+domínio, depois do deploy ele vai cair na página de vendas em vez da tela de
+atendimento. **Reconfigure o totem para abrir `/atendimento` direto** — que é
+como ele deve ficar de qualquer forma, em modo quiosque.
+
+### 2. As migrações mexem em tabelas com dados reais
+
+`2026_09_05_000003_add_organizacao_to_tenant_tables` adiciona
+`organizacao_id` em `users`, `devices` e `manifestations`, cria a
+"Organização Padrão" e adota tudo o que já existe. É o caminho projetado
+para esse cenário — sem a adoção, os registros antigos sumiriam das telas no
+momento em que o filtro por organização entrasse.
+
+Ainda assim: **faça backup do banco antes** (hPanel → Bancos de Dados →
+Exportar). É a única etapa não trivialmente reversível.
+
+### 3. O build carrega as variáveis `VITE_*` da SUA máquina
+
+`VITE_KIOSK_IA_LOCAL` entra no bundle na hora do `npm run build`. No `.env`
+de desenvolvimento ele costuma estar `true` (processamento local, sem
+Gemini). Se você compilar assim e subir, **a produção vai parar de usar a
+Gemini**. Deixe `false` antes de gerar o pacote — o `deploy.ps1` mostra o
+valor atual e pede confirmação justamente por isso.
+
+## Passo a passo da atualização
+
+```powershell
+# 1. Na sua máquina: garanta o valor de produção e gere o pacote
+#    (.env: VITE_KIOSK_IA_LOCAL=false)
+.\deploy.ps1
+```
+
+No servidor, pelo Gerenciador de Arquivos ou SSH:
+
+```bash
+# 2. Backup do banco (hPanel) e do .env atual
+cp .env .env.backup-$(date +%F)
+
+# 3. Descompacte o pacote por cima. NÃO sobrescreva o .env
+#    (ele não vai no pacote, mas confira depois do unzip).
+
+# 4. Variáveis novas desta versão, acrescente ao .env:
+#    GEMINI_TEXT_MODEL=gemini-flash-lite-latest
+#    VITE_KIOSK_IA_LOCAL=false
+
+# 5. Banco: migração + catálogo de planos
+php artisan migrate --force
+php artisan db:seed --class="Database\Seeders\PlanoSeeder" --force
+
+# 6. Limpe e refaça os caches (rotas e config MUDARAM)
+php artisan config:clear && php artisan route:clear && php artisan view:clear
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+```
+
+## Depois de subir, confira
+
+```bash
+curl -s https://totem.prinatus.com.br/api/v1/health      # db/storage/gemini true
+curl -s -o /dev/null -w "%{http_code}" https://totem.prinatus.com.br/api/v1/planos   # 200 (era 404)
+```
+
+E no navegador:
+
+- `/` → home de marketing (antes redirecionava)
+- `/atendimento` → o totem já pareado **continua funcionando**: a chave dele
+  fica no `localStorage` da máquina e a migração não a altera
+- `/admin` → o login existente continua valendo; o usuário passa a pertencer
+  à "Organização Padrão" e vê os dispositivos já adotados
+- `/admin/relatorios` → tela nova
+
+## Se der errado
+
+O ponto de retorno é o backup do banco. O código volta com
+`git checkout <commit-anterior>` + novo `deploy.ps1`. Os caches precisam ser
+refeitos em qualquer um dos sentidos.
+
+---
+
+# Instalação do zero (cliente novo)
+
 ## 0. Antes de tudo: PHP 8.4
 
 **Requisito duro.** O `composer.lock` resolve o stack Symfony em versões que
