@@ -37,6 +37,11 @@ export function Layout({ children }: { children: ReactNode }) {
               </NavLink>
             )}
             {temPapelMinimo(user?.role, 'admin') && (
+              <NavLink to="/equipe" className={linkClass}>
+                Equipe
+              </NavLink>
+            )}
+            {temPapelMinimo(user?.role, 'admin') && (
               <NavLink to="/dispositivos" className={linkClass}>
                 Dispositivos
               </NavLink>

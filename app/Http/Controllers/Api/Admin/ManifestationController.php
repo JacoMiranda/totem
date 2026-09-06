@@ -30,11 +30,17 @@ class ManifestationController extends Controller
         Gate::authorize('ver-manifestacoes');
 
         $query = Manifestation::query()
+            ->with('responsavel:id,name')
             ->when($request->filled('categoria'), fn ($q) => $q->where('categoria', $request->string('categoria')))
             ->when($request->filled('sentimento'), fn ($q) => $q->where('sentimento', $request->string('sentimento')))
             ->when($request->filled('urgencia'), fn ($q) => $q->where('urgencia', $request->string('urgencia')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('deviceId'), fn ($q) => $q->where('device_id', $request->string('deviceId')))
+            // "Minhas" (o próprio analista) ou por responsável específico (admin).
+            ->when($request->boolean('minhas'), fn ($q) => $q->where('responsavel_id', $request->user()->id))
+            ->when($request->filled('responsavelId'), fn ($q) => $request->string('responsavelId')->toString() === 'sem'
+                ? $q->whereNull('responsavel_id')
+                : $q->where('responsavel_id', $request->string('responsavelId')))
             ->when($request->filled('de'), fn ($q) => $q->whereDate('criado_em', '>=', $request->string('de')))
             ->when($request->filled('ate'), fn ($q) => $q->whereDate('criado_em', '<=', $request->string('ate')))
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($sub) => $sub
@@ -252,6 +258,7 @@ class ManifestationController extends Controller
             'status' => $m->status->value,
             'resumo' => $m->resumo,
             'keywords' => $m->keywords,
+            'responsavel' => $m->responsavel?->only(['id', 'name']),
             'criadoEm' => $m->criado_em->toIso8601String(),
         ];
     }

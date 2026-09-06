@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CATEGORIES, MANIFESTATION_STATUSES, SENTIMENTS, URGENCIES, getSentimentEmoji, getUrgencyBadgeClass } from '../../shared';
 import { api } from '../lib/api';
+import { temPapelMinimo, useAuthStore } from '../lib/authStore';
 
 interface ManifestacaoResumo {
   id: string;
@@ -13,23 +14,34 @@ interface ManifestacaoResumo {
   status: string;
   resumo: string | null;
   keywords: string[] | null;
+  responsavel: { id: number; name: string } | null;
   criadoEm: string;
 }
 
 const PAGE_SIZE = 25;
 
 export function ManifestationsList() {
+  const { user } = useAuthStore();
+  const podeVerTudo = temPapelMinimo(user?.role, 'admin');
   const [dados, setDados] = useState<ManifestacaoResumo[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
   const [carregando, setCarregando] = useState(false);
-  const [filtros, setFiltros] = useState({ status: '', categoria: '', sentimento: '', urgencia: '', q: '' });
+  // Analista/atendente começam vendo só as suas; admin/leitor veem todas.
+  const [minhas, setMinhas] = useState(() => temPapelMinimo(user?.role, 'atendente') && !podeVerTudo);
+  const [filtros, setFiltros] = useState({ status: '', categoria: '', sentimento: '', urgencia: '', q: '', responsavelId: '' });
+  const [equipe, setEquipe] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    if (podeVerTudo) api.get('/users').then(({ data }) => setEquipe(data)).catch(() => {});
+  }, [podeVerTudo]);
 
   useEffect(() => {
     let cancelado = false;
     setCarregando(true);
 
     const params: Record<string, string | number> = { page: pagina, pageSize: PAGE_SIZE };
+    if (minhas) params.minhas = 1;
     Object.entries(filtros).forEach(([k, v]) => {
       if (v) params[k] = v;
     });
@@ -46,7 +58,7 @@ export function ManifestationsList() {
     return () => {
       cancelado = true;
     };
-  }, [pagina, filtros]);
+  }, [pagina, filtros, minhas]);
 
   const totalPaginas = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -57,9 +69,44 @@ export function ManifestationsList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-extrabold text-slate-900">Manifestações</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-extrabold text-slate-900">Manifestações</h1>
+        {temPapelMinimo(user?.role, 'atendente') && (
+          <div className="flex rounded-lg border border-slate-300 overflow-hidden text-sm font-bold">
+            <button
+              type="button"
+              onClick={() => { setPagina(1); setMinhas(true); }}
+              className={`px-4 py-1.5 ${minhas ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+            >
+              Minhas
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPagina(1); setMinhas(false); }}
+              className={`px-4 py-1.5 ${!minhas ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+            >
+              Todas
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-2 bg-white border border-slate-200 rounded-xl p-3">
+        {podeVerTudo && !minhas && (
+          <select
+            value={filtros.responsavelId}
+            onChange={(e) => atualizarFiltro('responsavelId', e.target.value)}
+            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+          >
+            <option value="">Responsável: todos</option>
+            <option value="sem">— sem responsável —</option>
+            {equipe.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        )}
         <input
           placeholder="Buscar em transcrição/resumo…"
           value={filtros.q}
@@ -126,6 +173,7 @@ export function ManifestationsList() {
               <th className="p-3">Teor</th>
               <th className="p-3">Urgência</th>
               <th className="p-3">Status</th>
+              <th className="p-3">Responsável</th>
               <th className="p-3">Recebida em</th>
             </tr>
           </thead>
@@ -148,12 +196,13 @@ export function ManifestationsList() {
                   </span>
                 </td>
                 <td className="p-3">{m.status}</td>
+                <td className="p-3 text-xs text-slate-600">{m.responsavel?.name ?? <span className="text-amber-600">—</span>}</td>
                 <td className="p-3 text-xs text-slate-500">{new Date(m.criadoEm).toLocaleString('pt-BR')}</td>
               </tr>
             ))}
             {!carregando && dados.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-slate-400">
+                <td colSpan={8} className="p-6 text-center text-slate-400">
                   Nenhuma manifestação encontrada.
                 </td>
               </tr>

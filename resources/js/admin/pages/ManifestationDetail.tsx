@@ -35,6 +35,7 @@ export function ManifestationDetail() {
   const [novoStatus, setNovoStatus] = useState('');
   const [motivo, setMotivo] = useState('');
   const [responsavelId, setResponsavelId] = useState('');
+  const [equipe, setEquipe] = useState<{ id: number; name: string; recebeAtribuicao: boolean; ativo: boolean }[]>([]);
   const [novaNota, setNovaNota] = useState('');
   const [respostaTexto, setRespostaTexto] = useState('');
   const [publicarResposta, setPublicarResposta] = useState(false);
@@ -52,6 +53,12 @@ export function ManifestationDetail() {
   };
 
   useEffect(recarregar, [id]);
+
+  useEffect(() => {
+    if (temPapelMinimo(user?.role, 'analista')) {
+      api.get('/users').then(({ data }) => setEquipe(data)).catch(() => {});
+    }
+  }, [user?.role]);
 
   const executar = async (acao: () => Promise<unknown>, mensagemSucesso: string) => {
     setAviso(null);
@@ -167,18 +174,28 @@ export function ManifestationDetail() {
                 </select>
               </div>
 
-              <label className="text-xs font-bold text-slate-500 mt-1">Atribuir responsável (ID do usuário)</label>
+              <label className="text-xs font-bold text-slate-500 mt-1">Atribuir responsável</label>
               <div className="flex gap-2">
-                <input
+                <select
                   value={responsavelId}
                   onChange={(e) => setResponsavelId(e.target.value)}
-                  placeholder="id numérico"
                   className="rounded-lg border border-slate-300 px-2 py-1 text-xs flex-1"
-                />
+                >
+                  <option value="">escolher…</option>
+                  {equipe
+                    .filter((m) => m.ativo)
+                    .map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                        {m.recebeAtribuicao ? '' : ' (fora do rodízio)'}
+                      </option>
+                    ))}
+                </select>
                 <button
                   type="button"
+                  disabled={!responsavelId}
                   onClick={() => executar(() => api.patch(`/manifestations/${id}/assign`, { responsavelId }), 'Responsável atribuído.')}
-                  className="rounded-lg bg-blue-600 text-white text-xs font-bold px-3 py-1"
+                  className="rounded-lg bg-blue-600 text-white text-xs font-bold px-3 py-1 disabled:opacity-40"
                 >
                   Atribuir
                 </button>

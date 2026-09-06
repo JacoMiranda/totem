@@ -7,12 +7,12 @@ use App\Http\Requests\StoreManifestationRequest;
 use App\Models\Device;
 use App\Models\Manifestation;
 use App\Models\ManifestationStatusHistory;
+use App\Services\AtribuidorDeManifestacoes;
 use App\Services\NotificationDispatchService;
 use App\Services\ProtocoloService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 /**
  * Contrato de docs/API.md ("Manifestações — totem / criação"). Rotas
@@ -24,6 +24,7 @@ class ManifestationController extends Controller
     public function __construct(
         private readonly ProtocoloService $protocolo,
         private readonly NotificationDispatchService $notificacoes,
+        private readonly AtribuidorDeManifestacoes $atribuidor,
     ) {}
 
     /**
@@ -66,6 +67,14 @@ class ManifestationController extends Controller
         $manifestacao->protocolo = $this->protocolo->gerarProtocolo();
         $pin = $this->protocolo->gerarPin();
         $manifestacao->pin_acompanhamento = $this->protocolo->hashPin($pin);
+
+        // Distribuição automática: vai pra quem tem menos caso em aberto no
+        // pool da organização (ver AtribuidorDeManifestacoes). Fica null se
+        // ninguém no pool - a equipe atribui à mão.
+        if ($device->organizacao) {
+            $manifestacao->responsavel_id = $this->atribuidor->proximoResponsavel($device->organizacao)?->id;
+        }
+
         $manifestacao->save();
 
         ManifestationStatusHistory::create([

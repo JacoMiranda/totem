@@ -141,17 +141,24 @@ class SemearDemo extends Command
                 'email_verified_at' => now(),
             ],
         );
-        $analista = User::updateOrCreate(
-            ['email' => 'analista@aurora.test'],
-            [
-                'organizacao_id' => $org->id,
-                'name' => 'Bruno — Análise',
-                'password' => Hash::make(self::SENHA_DEMO),
-                'role' => UserRole::Analista,
-                'ativo' => true,
-                'email_verified_at' => now(),
-            ],
-        );
+        // Ana (admin) coordena e fica FORA do rodízio. Bruno e Carla
+        // (analistas) recebem os casos automaticamente, equilibrado.
+        $admin->forceFill(['recebe_atribuicao' => false])->save();
+
+        $analistas = collect(['Bruno — Análise' => 'analista@aurora.test', 'Carla — Análise' => 'carla@aurora.test'])
+            ->map(fn ($email, $nome) => User::updateOrCreate(
+                ['email' => $email],
+                [
+                    'organizacao_id' => $org->id,
+                    'name' => $nome,
+                    'password' => Hash::make(self::SENHA_DEMO),
+                    'role' => UserRole::Analista,
+                    'ativo' => true,
+                    'recebe_atribuicao' => true,
+                    'email_verified_at' => now(),
+                ],
+            ))
+            ->values();
 
         $devices = [];
         foreach (self::UNIDADES as $codigo => [$unidade, $chave]) {
@@ -203,8 +210,10 @@ class SemearDemo extends Command
                 'categoria' => $categoria,
                 'urgencia' => $urgencia,
                 'status' => $status,
+                // "Recebida"/"Em triagem" ainda sem dono (acabou de chegar);
+                // o resto rodou entre os analistas do rodízio.
                 'responsavel_id' => in_array($status, ['Em análise', 'Respondida', 'Concluída', 'Arquivada'], true)
-                    ? [$admin->id, $analista->id][random_int(0, 1)]
+                    ? $analistas[$n % $analistas->count()]->id
                     : null,
                 'resposta_oficial' => $respostaEm ? self::RESPOSTAS[$categoria] : null,
                 'resposta_publicada_em' => $respostaEm,
@@ -231,8 +240,8 @@ class SemearDemo extends Command
         $this->newLine();
         $this->info('== Empresa-demo "Rede Aurora" pronta ==');
         $this->line("  Manifestações:   {$criadas} (últimos 150 dias)");
-        $this->line('  Painel admin:    /admin  →  demo@aurora.test  /  '.self::SENHA_DEMO);
-        $this->line('                   analista@aurora.test  /  '.self::SENHA_DEMO);
+        $this->line('  Painel admin:    /admin  →  demo@aurora.test (Ana, admin)  /  '.self::SENHA_DEMO);
+        $this->line('                   analista@aurora.test (Bruno)  ·  carla@aurora.test (Carla)  /  '.self::SENHA_DEMO);
         $this->line('  Mural público:   '.url('/mural/'.self::MURAL_TOKEN));
         $this->line('  Totens (device key):');
         foreach (self::UNIDADES as $codigo => [$unidade, $chave]) {

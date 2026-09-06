@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\ManifestationController as AdminManifestationController;
+use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
@@ -80,6 +81,12 @@ Route::prefix('v1')->group(function () {
         Route::patch('/manifestations/{manifestation}/classify', [AdminManifestationController::class, 'classify'])->whereUuid('manifestation');
         Route::post('/manifestations/{manifestation}/notes', [AdminManifestationController::class, 'addNote'])->whereUuid('manifestation');
         Route::post('/manifestations/{manifestation}/resposta', [AdminManifestationController::class, 'resposta'])->whereUuid('manifestation');
+
+        // Cadastro da equipe da conta + distribuição automática (admin).
+        Route::get('/users', [UserController::class, 'index']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::post('/users/transferir-carga', [UserController::class, 'transferirCarga']);
+        Route::patch('/users/{user}', [UserController::class, 'update']);
 
         // Dispositivos (admin) - nunca via device.key (um totem não se auto-cadastra).
         // Pareamento pelo próprio kiosk (tela de login do totem): listar +

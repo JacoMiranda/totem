@@ -2,6 +2,7 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Devices } from './pages/Devices';
+import { Equipe } from './pages/Equipe';
 import { Logs } from './pages/Logs';
 import { Login } from './pages/Login';
 import { Mural } from './pages/Mural';
@@ -76,6 +77,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Mural />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipe"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Equipe />
               </Layout>
             </ProtectedRoute>
           }
