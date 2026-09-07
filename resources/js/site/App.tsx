@@ -2,6 +2,68 @@ import { useEffect, useState } from 'react';
 import { Cadastro } from './Cadastro';
 import { type Plano, carregarPlanos } from './api';
 
+const IMAGENS_RECEPCAO = [
+  { src: '/midia/recepcao-cabine.png', alt: 'Cabine de manifestação e a recepção acompanhando os indicadores' },
+  { src: '/midia/recepcao-totem.png', alt: 'Totem de ouvidoria na recepção, com o painel de transparência numa TV ao fundo' },
+];
+
+/** Carrossel das imagens da recepção — 1 por vez, altura fixa, ocupa menos espaço. */
+function CarrosselRecepcao() {
+  const [i, setI] = useState(0);
+  const total = IMAGENS_RECEPCAO.length;
+
+  useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % total), 6000);
+
+    return () => clearInterval(t);
+  }, [total]);
+
+  return (
+    <div className="mt-12 max-w-4xl mx-auto">
+      <div className="relative aspect-[16/10] rounded-3xl overflow-hidden border border-slate-200 shadow-xl shadow-slate-900/10 bg-slate-100">
+        {IMAGENS_RECEPCAO.map((img, n) => (
+          <img
+            key={img.src}
+            src={img.src}
+            alt={img.alt}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-contain transition-opacity duration-700"
+            style={{ opacity: n === i ? 1 : 0 }}
+          />
+        ))}
+        <button
+          type="button"
+          aria-label="Anterior"
+          onClick={() => setI((v) => (v - 1 + total) % total)}
+          className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/80 hover:bg-white text-slate-700 font-bold shadow"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          aria-label="Próxima"
+          onClick={() => setI((v) => (v + 1) % total)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/80 hover:bg-white text-slate-700 font-bold shadow"
+        >
+          ›
+        </button>
+      </div>
+      <div className="mt-3 flex justify-center gap-2">
+        {IMAGENS_RECEPCAO.map((_, n) => (
+          <button
+            key={n}
+            type="button"
+            aria-label={`Imagem ${n + 1}`}
+            onClick={() => setI(n)}
+            className="h-2 rounded-full transition-all"
+            style={{ width: n === i ? 24 : 8, background: n === i ? '#2563eb' : '#cbd5e1' }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Vídeo de apresentação. Por padrão toca o arquivo local
  * (public/midia/apresentacao.mp4). Se `VITE_HOME_VIDEO` estiver definido
@@ -174,24 +236,7 @@ export default function App() {
           O totem (ou a cabine, para mais privacidade) na entrada, e uma TV com o painel de transparência à
           vista de todos.
         </p>
-        <div className="mt-12 flex flex-col items-center gap-8">
-          <figure className="w-full max-w-3xl rounded-3xl overflow-hidden border border-slate-200 shadow-lg shadow-slate-900/5">
-            <img
-              src="/midia/recepcao-cabine.png"
-              alt="Cabine de manifestação fechada para mais privacidade, e a recepção acompanhando os indicadores"
-              loading="lazy"
-              className="block w-full h-auto"
-            />
-          </figure>
-          <figure className="w-full max-w-md rounded-3xl overflow-hidden border border-slate-200 shadow-lg shadow-slate-900/5">
-            <img
-              src="/midia/recepcao-totem.png"
-              alt="Totem de ouvidoria na recepção, com o painel de transparência numa TV ao fundo"
-              loading="lazy"
-              className="block w-full h-auto"
-            />
-          </figure>
-        </div>
+        <CarrosselRecepcao />
         <p className="mt-4 text-center text-xs text-slate-400">Imagens ilustrativas.</p>
       </section>
 
