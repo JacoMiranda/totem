@@ -1,4 +1,5 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Ajuda } from './pages/Ajuda';
@@ -23,6 +24,7 @@ import { Relatorios } from './pages/Relatorios';
 function App() {
   return (
     <Router basename="/admin">
+      <ErrorBoundary>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route
@@ -137,6 +139,7 @@ function App() {
         />
         <Route path="*" element={<Navigate to="/manifestacoes" replace />} />
       </Routes>
+      </ErrorBoundary>
     </Router>
   );
 }

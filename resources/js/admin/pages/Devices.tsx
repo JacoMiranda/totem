@@ -39,10 +39,12 @@ export function Devices() {
     api
       .get('/devices', { params })
       .then(({ data }) => {
-        setDispositivos(data.dispositivos);
-        setPlataforma(data.plataforma);
-        setOrgs(data.organizacoes);
+        setDispositivos(Array.isArray(data?.dispositivos) ? data.dispositivos : []);
+        setPlataforma(Boolean(data?.plataforma));
+        setOrgs(Array.isArray(data?.organizacoes) ? data.organizacoes : []);
+        setErro(null);
       })
+      .catch(() => setErro('Não foi possível carregar os dispositivos. Recarregue a página.'))
       .finally(() => setCarregando(false));
   };
 
