@@ -3,8 +3,9 @@ import { Cadastro } from './Cadastro';
 import { type Plano, carregarPlanos } from './api';
 
 const IMAGENS_RECEPCAO = [
-  { src: '/midia/recepcao-cabine.png', alt: 'Cabine de manifestação e a recepção acompanhando os indicadores' },
-  { src: '/midia/recepcao-totem.png', alt: 'Totem de ouvidoria na recepção, com o painel de transparência numa TV ao fundo' },
+  { src: '/midia/pessoa-totem.png', alt: 'Pessoa registrando a manifestação no totem da recepção, com o painel de transparência numa TV ao fundo' },
+  { src: '/midia/dashboard.png', alt: 'Painel de transparência do mural: percentuais respondidas/no prazo, gráficos por período, teor e sentimento' },
+  { src: '/midia/cabine.png', alt: 'Cabine de manifestação fechada, com fone e microfone, para mais privacidade' },
 ];
 
 /** Carrossel das imagens da recepção — 1 por vez, altura fixa, ocupa menos espaço. */
@@ -89,7 +90,7 @@ function VideoApresentacao() {
           className="w-full h-full object-cover"
           controls
           preload="metadata"
-          poster="/midia/recepcao-totem.png"
+          poster="/midia/pessoa-totem.png"
         >
           <source src="/midia/apresentacao.mp4" type="video/mp4" />
         </video>
