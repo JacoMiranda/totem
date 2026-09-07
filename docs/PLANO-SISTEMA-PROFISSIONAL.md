@@ -55,7 +55,7 @@ Ler junto com:
 - **Categoria**: `Elogio`, `Sugestão`, `Dúvida`, `Reclamação`, `Denúncia`
 - **Urgência**: `Baixa`, `Média`, `Alta`, `Crítica`
 - **Status da manifestação (novo)**: `Recebida` → `Em triagem` → `Em análise` → `Respondida` → `Concluída` / `Arquivada`
-  - Manifestação **não-negativa** (elogio, ou dúvida/sugestão sem sentimento ruim e sem urgência Alta/Crítica) já é criada **`Concluída`** — a equipe só trata o que é negativo. Ver `ManifestationController::naoRequerTratamento`.
+  - Manifestação **não-negativa** já é criada **`Concluída`** — a equipe só trata o que é negativo. Ver `ManifestationController::naoRequerTratamento`. Regra: nunca Reclamação/Denúncia, nunca sentimento Insatisfeito/Preocupado, nunca urgência Alta/Crítica; **Elogio** só conclui se o sentimento for Excelente/Satisfeito (elogio neutro/sem sentimento pode ser ironia — vai pra fila).
   - Evolução futura (outra etapa): pra Dúvida, direcionar o cidadão a um FAQ por palavra-chave.
 - **Canal**: `Totem`, `Web`, `Importação`
 - **Status de sincronização (local)**: `pendente`, `enviando`, `sincronizado`, `erro`

@@ -88,7 +88,7 @@ export const ARTIGOS: Artigo[] = [
     tags: ['distribuição', 'automático', 'responsável', 'rodízio', 'fila'],
     corpo: [
       { p: 'Quando o cidadão termina no totem, a manifestação entra no painel com protocolo e a classificação automática (teor, sentimento, urgência).' },
-      { p: 'Se NÃO for nada negativo (elogio, ou dúvida/sugestão tranquila — sem sentimento ruim, sem urgência alta), ela já entra CONCLUÍDA: a equipe só cuida do que precisa de tratamento. Continua na lista (filtro status = Concluída) e conta como "resolvida" nos indicadores.' },
+      { p: 'Se NÃO for nada negativo, ela já entra CONCLUÍDA: a equipe só cuida do que precisa de tratamento. Continua na lista (filtro status = Concluída) e conta como "resolvida" nos indicadores. Regra: elogio com sentimento positivo, ou dúvida/sugestão tranquila (sem sentimento ruim, sem urgência alta). Um "elogio" com sentimento neutro pode ser ironia ("parabéns pela fila de 2h") e vai pra fila pra alguém olhar.' },
       { p: 'Se for negativa (reclamação, denúncia, sentimento ruim, urgência alta), entra "Recebida" e já atribuída: o sistema escolhe quem está com MENOS casos em aberto entre as pessoas do rodízio (Equipe → coluna "Rodízio"). Sem ninguém no rodízio, fica sem responsável pra atribuição manual.' },
       { nota: 'Manifestação de urgência Crítica ou teor Denúncia também dispara uma notificação (se o canal de notificação estiver configurado).' },
     ],

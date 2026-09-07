@@ -117,7 +117,11 @@ class ManifestationController extends Controller
     /**
      * "Não requer tratamento" = nada negativo: nunca Reclamação/Denúncia,
      * nunca sentimento Insatisfeito/Preocupado, nunca urgência Alta/Crítica.
-     * Elogio, Sugestão e Dúvida tranquilas se encaixam.
+     *
+     * Elogio só conclui sozinho se o SENTIMENTO for de fato positivo
+     * (Excelente/Satisfeito). Um "elogio" com sentimento neutro ou ausente
+     * pode ser ironia ("parabéns pela fila de 2 horas") e vai pra fila da
+     * equipe olhar. Sugestão e Dúvida tranquilas concluem direto.
      */
     private function naoRequerTratamento(Manifestation $m): bool
     {
@@ -135,7 +139,11 @@ class ManifestationController extends Controller
             return false;
         }
 
-        return in_array($cat, ['Elogio', 'Sugestão', 'Dúvida'], true);
+        if ($cat === 'Elogio') {
+            return in_array($sent, ['Excelente', 'Satisfeito'], true);
+        }
+
+        return in_array($cat, ['Sugestão', 'Dúvida'], true);
     }
 
     private function respostaCriacao(Manifestation $m, bool $existente, ?string $pin = null): JsonResponse

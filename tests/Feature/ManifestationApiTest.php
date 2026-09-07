@@ -121,6 +121,29 @@ class ManifestationApiTest extends TestCase
         ]);
     }
 
+    /** "Elogio" com sentimento neutro/ausente pode ser ironia - NÃO conclui sozinho. */
+    public function test_elogio_sem_sentimento_positivo_vai_pro_fluxo(): void
+    {
+        [, $chave] = $this->criarDevice();
+
+        foreach (['Neutro', null] as $sent) {
+            $payload = [
+                'clientId' => (string) Str::uuid(),
+                'criadoEm' => now()->toIso8601String(),
+                'consentimentoLgpd' => true,
+                'transcricao' => 'Parabéns pela fila de duas horas, muito eficiente.',
+                'categoria' => 'Elogio',
+                'urgencia' => 'Baixa',
+            ];
+            if ($sent) {
+                $payload['sentimento'] = $sent;
+            }
+
+            $this->postJson('/api/v1/manifestations', $payload, ['X-Device-Key' => $chave])
+                ->assertCreated()->assertJsonPath('status', 'Recebida');
+        }
+    }
+
     /** Reclamação (ou sentimento negativo) NÃO é concluída sozinha. */
     public function test_reclamacao_continua_no_fluxo(): void
     {
