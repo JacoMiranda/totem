@@ -24,7 +24,10 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <span className="font-extrabold text-slate-900">Ouvidoria Cidadã</span>
+          {/* href (não NavLink): a home é outra SPA (/), fora do router do /admin. */}
+          <a href="/" className="font-extrabold text-slate-900 hover:text-blue-700" title="Ir para a página inicial">
+            🏛️ Ouvidoria Cidadã
+          </a>
           <nav className="flex gap-1">
             <NavLink to="/manifestacoes" className={linkClass}>
               Manifestações
