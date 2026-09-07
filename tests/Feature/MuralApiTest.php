@@ -98,6 +98,18 @@ class MuralApiTest extends TestCase
         $this->assertArrayNotHasKey('total', $corpo['indicadores']);
     }
 
+    /** Regressão: manifestação com device apagado não pode derrubar o mural (era 500 no bloco `unidades`). */
+    public function test_manifestacao_com_totem_apagado_nao_quebra_o_mural(): void
+    {
+        $org = $this->org(['mural_ativo' => true, 'mural_token' => 'totemapagado12345']);
+        $m = $this->manifestacao($org);
+        $m->device()->delete();
+
+        $this->getJson('/api/v1/mural/totemapagado12345')
+            ->assertOk()
+            ->assertJsonStructure(['indicadores', 'unidades']);
+    }
+
     public function test_isolamento_entre_organizacoes(): void
     {
         $a = $this->org(['mural_ativo' => true, 'mural_token' => 'orgaaaaaaaaaa1']);

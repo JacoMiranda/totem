@@ -156,7 +156,10 @@ class MuralService
             ->pluck('unidade', 'id');
 
         $porUnidade = $registros
-            ->groupBy(fn (Manifestation $m) => $unidadePorDevice[$m->device_id] ?: 'Outros')
+            // ->get() (não acesso por []) - device apagado deixa `device_id`
+            // pendurado; acessar chave inexistente numa Collection vira
+            // Warning -> ErrorException -> 500 (achado real em produção).
+            ->groupBy(fn (Manifestation $m) => $unidadePorDevice->get($m->device_id) ?: 'Outros')
             ->map(fn ($grupo, $nome) => ['nome' => (string) $nome, 'total' => $grupo->count()])
             ->sortByDesc('total')
             ->values();
