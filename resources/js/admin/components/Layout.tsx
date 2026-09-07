@@ -25,8 +25,11 @@ export function Layout({ children }: { children: ReactNode }) {
       <header className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* href (não NavLink): a home é outra SPA (/), fora do router do /admin. */}
-          <a href="/" className="font-extrabold text-slate-900 hover:text-blue-700" title="Ir para a página inicial">
-            🏛️ Ouvidoria Cidadã
+          <a href="/" className="flex items-center gap-2 font-extrabold text-slate-900 hover:text-blue-700" title="Ir para a página inicial">
+            <span className="grid place-items-center h-7 w-7 rounded-lg bg-slate-900">
+              <img src="/midia/simbolo-prinatus.png" alt="Prinatus" className="h-5 w-5" />
+            </span>
+            Ouvidoria Cidadã
           </a>
           <nav className="flex gap-1">
             <NavLink to="/manifestacoes" className={linkClass}>

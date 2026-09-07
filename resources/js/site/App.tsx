@@ -3,7 +3,8 @@ import { Cadastro } from './Cadastro';
 import { type Plano, carregarPlanos } from './api';
 
 const IMAGENS_RECEPCAO = [
-  { src: '/midia/pessoa-totem.png', alt: 'Pessoa registrando a manifestação no totem da recepção, com o painel de transparência numa TV ao fundo' },
+  { src: '/midia/totem-prinatus.png', alt: 'Pessoa registrando a manifestação no totem da recepção, com a marca Prinatus' },
+  { src: '/midia/recepcao-prinatus.png', alt: 'Recepção com cabine acústica e totem Prinatus, e o painel de transparência numa TV ao fundo' },
   { src: '/midia/dashboard.png', alt: 'Painel de transparência do mural: percentuais respondidas/no prazo, gráficos por período, teor e sentimento' },
   { src: '/midia/cabine.png', alt: 'Cabine de manifestação fechada, com fone e microfone, para mais privacidade' },
 ];
@@ -127,7 +128,10 @@ export default function App() {
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 font-extrabold text-slate-900">
-            <span className="text-2xl">🏛️</span> Ouvidoria Cidadã
+            <span className="grid place-items-center h-9 w-9 rounded-xl bg-slate-900">
+              <img src="/midia/simbolo-prinatus.png" alt="Prinatus" className="h-7 w-7" />
+            </span>
+            Ouvidoria Cidadã
           </a>
           <nav className="flex items-center gap-2 sm:gap-5 text-sm font-semibold">
             <a href="#como-funciona" className="hidden sm:inline text-slate-600 hover:text-slate-900">
@@ -348,7 +352,12 @@ export default function App() {
 
       <footer className="border-t border-slate-200 py-8">
         <div className="max-w-6xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
-          <span>🏛️ Ouvidoria Cidadã</span>
+          <span className="flex items-center gap-2">
+            <span className="grid place-items-center h-6 w-6 rounded-md bg-slate-900">
+              <img src="/midia/simbolo-prinatus.png" alt="Prinatus" className="h-4 w-4" />
+            </span>
+            Ouvidoria Cidadã
+          </span>
           <div className="flex gap-5">
             {/* "Acompanhar protocolo" volta aqui quando a página pública
                 existir (Fase 6) - o endpoint já existe, a tela não. Link
