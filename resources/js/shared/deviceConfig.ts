@@ -19,6 +19,8 @@ export interface DeviceConfig {
   deviceKey: string;
   codigo: string;
   nome: string;
+  /** Nome da empresa dona do totem - mostrado na tela de espera. */
+  empresa?: string | null;
 }
 
 export function getDeviceConfig(): DeviceConfig | null {

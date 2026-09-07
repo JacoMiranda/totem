@@ -77,7 +77,12 @@ class PareamentoTotemTest extends TestCase
 
     public function test_parear_emite_chave_nova_e_revoga_a_anterior(): void
     {
-        [$device, $chaveAntiga] = $this->device();
+        $org = \App\Models\Organizacao::create([
+            'nome' => 'Prefeitura de Testelândia',
+            'slug' => 'testelandia-'.Str::random(5),
+            'status' => \App\Enums\OrganizacaoStatus::Ativa,
+        ]);
+        [$device, $chaveAntiga] = $this->device(['organizacao_id' => $org->id]);
         Sanctum::actingAs($this->usuario(UserRole::Atendente));
 
         $r = $this->postJson("/api/v1/devices/{$device->id}/pair");
@@ -87,6 +92,7 @@ class PareamentoTotemTest extends TestCase
         $this->assertNotEmpty($novaChave);
         $this->assertNotSame($chaveAntiga, $novaChave);
         $r->assertJsonPath('codigo', $device->codigo);
+        $r->assertJsonPath('empresa', $device->organizacao->nome);
 
         // a chave nova vale...
         $this->assertSame(

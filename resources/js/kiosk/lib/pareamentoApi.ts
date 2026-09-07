@@ -51,7 +51,9 @@ export async function listarDevicesPareaveis(): Promise<DevicePareavel[]> {
   return data as DevicePareavel[];
 }
 
-export async function parearDevice(id: string): Promise<{ codigo: string; nome: string; deviceKey: string }> {
+export async function parearDevice(
+  id: string,
+): Promise<{ codigo: string; nome: string; empresa: string | null; deviceKey: string }> {
   const { data } = await pareamento.post(`/devices/${id}/pair`);
 
   return data;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getDeviceConfig } from '../../shared/deviceConfig';
 import { api } from '../lib/api';
 
 /**
@@ -13,6 +14,7 @@ import { api } from '../lib/api';
  */
 interface Resumo {
   titulo: string;
+  empresa: string | null;
   amostraPequena: boolean;
   indicadores: {
     respondidasPct: number | null;
@@ -32,6 +34,9 @@ const TIPOS = [
 export function TelaEspera({ onComecar, recusou }: { onComecar: () => void; recusou: boolean }) {
   const [resumo, setResumo] = useState<Resumo | null>(null);
   const [elogio, setElogio] = useState(0);
+  // A empresa dona do totem: gravada no pareamento (funciona offline) e
+  // confirmada pelo /mural/resumo (pega renomeações).
+  const empresa = resumo?.empresa ?? getDeviceConfig()?.empresa ?? resumo?.titulo ?? null;
 
   useEffect(() => {
     let vivo = true;
@@ -61,9 +66,12 @@ export function TelaEspera({ onComecar, recusou }: { onComecar: () => void; recu
       onPointerDown={onComecar}
     >
       <div className="flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-7 text-center">
-        <div className="flex items-center gap-3 text-blue-700">
-          <span className="text-4xl">📣</span>
-          <span className="text-2xl font-extrabold leading-tight">{resumo?.titulo ?? 'Ouvidoria'}</span>
+        <div className="flex flex-col items-center gap-1 text-blue-700">
+          <div className="flex items-center gap-3">
+            <span className="text-4xl">📣</span>
+            <span className="text-2xl font-extrabold leading-tight">Ouvidoria</span>
+          </div>
+          {empresa && <span className="text-lg font-bold text-slate-500">{empresa}</span>}
         </div>
 
         <div>

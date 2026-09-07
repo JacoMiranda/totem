@@ -47,8 +47,8 @@ export function SetupScreen({ onConcluido }: { onConcluido: () => void }) {
     setErro(null);
     setOcupado(true);
     try {
-      const { codigo, nome, deviceKey } = await parearDevice(device.id);
-      setDeviceConfig({ codigo, nome, deviceKey });
+      const { codigo, nome, empresa, deviceKey } = await parearDevice(device.id);
+      setDeviceConfig({ codigo, nome, empresa, deviceKey });
       await sairPareamento(); // não deixa credencial de equipe no totem
       onConcluido();
     } catch (err) {

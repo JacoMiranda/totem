@@ -55,6 +55,7 @@ class MuralService
 
         return [
             'titulo' => $org->muralTitulo(),
+            'empresa' => $org->nome,
             'tema' => in_array($org->mural_tema, ['claro', 'escuro'], true) ? $org->mural_tema : 'claro',
             'orientacao' => [
                 'local' => $org->mural_totem_local ?: null,

@@ -139,7 +139,8 @@ class MuralApiTest extends TestCase
 
         $this->getJson('/api/v1/mural/resumo', ['X-Device-Key' => $chave])
             ->assertOk()
-            ->assertJsonStructure(['titulo', 'indicadores' => ['respondidasPct'], 'elogios']);
+            ->assertJsonStructure(['titulo', 'empresa', 'indicadores' => ['respondidasPct'], 'elogios'])
+            ->assertJsonPath('empresa', $org->nome);
 
         $this->getJson('/api/v1/mural/resumo')->assertUnauthorized();
     }

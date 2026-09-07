@@ -109,6 +109,7 @@ class DeviceController extends Controller
             'codigo' => $device->codigo,
             'nome' => $device->nome,
             'unidade' => $device->unidade,
+            'empresa' => $device->organizacao?->nome,
             'deviceKey' => $chaveCrua,
         ]);
     }
