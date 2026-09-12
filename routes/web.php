@@ -30,5 +30,9 @@ Route::get('/admin/{any?}', function () {
 
 // Pulso Rápido: QR sem totem/tablet (ver PulsoService). O token do ponto é
 // fixo (impresso); cada visita gera uma sessão nova com hash próprio.
-Route::get('/pulso/{token}', [PulsoWebController::class, 'iniciar'])->where('token', '[a-z0-9]{4,64}');
+Route::get('/pulso/{token}', [PulsoWebController::class, 'iniciar'])->where('token', '[a-z0-9][a-z0-9-]{3,63}');
 Route::get('/pulso/s/{hash}', fn () => view('pulso'))->where('hash', '[a-zA-Z0-9]{40}')->name('pulso');
+
+// Painel público do s-Totem (agrega todos os pontos ativos da empresa) -
+// mesma página/bundle do fluxo de resposta, o React decide pelo caminho.
+Route::get('/s-totem/{any?}', fn () => view('pulso'))->where('any', '.*')->name('s-totem');

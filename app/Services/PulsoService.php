@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\PulsoValor;
+use App\Models\Organizacao;
 use App\Models\PulsoPonto;
 use App\Models\PulsoResposta;
 use App\Models\PulsoSessao;
@@ -106,6 +107,56 @@ class PulsoService
         return [
             'total' => $registros->count(),
             'porPergunta' => $porPergunta,
+        ];
+    }
+
+    /**
+     * Painel público (a "tela de LED" do pitch original): agrega TODOS os
+     * pontos ativos da organização, cada um com suas próprias perguntas -
+     * nos moldes do MuralService::paraOrganizacao, mas bem mais simples
+     * (sem tendência temporal/compromisso, só o quantitativo por carinha).
+     */
+    public function painelParaOrganizacao(Organizacao $org, int $dias = 30): array
+    {
+        $desde = now()->subDays($dias);
+
+        $pontos = PulsoPonto::where('organizacao_id', $org->id)
+            ->where('ativo', true)
+            ->orderBy('nome')
+            ->get();
+
+        $totalGeral = 0;
+        $porPonto = $pontos->map(function (PulsoPonto $ponto) use ($desde, &$totalGeral) {
+            $registros = PulsoResposta::where('pulso_ponto_id', $ponto->id)
+                ->where('criado_em', '>=', $desde)
+                ->get(['pergunta', 'valor']);
+            $totalGeral += $registros->count();
+
+            $porPergunta = $registros->groupBy('pergunta')->map(function ($grupo) {
+                $total = $grupo->count();
+
+                return [
+                    'total' => $total,
+                    'positivoPct' => $total ? (int) round($grupo->where('valor', PulsoValor::Positivo)->count() / $total * 100) : null,
+                    'neutroPct' => $total ? (int) round($grupo->where('valor', PulsoValor::Neutro)->count() / $total * 100) : null,
+                    'negativoPct' => $total ? (int) round($grupo->where('valor', PulsoValor::Negativo)->count() / $total * 100) : null,
+                ];
+            });
+
+            return [
+                'nome' => $ponto->nome,
+                'unidade' => $ponto->unidade,
+                'perguntas' => $ponto->perguntas,
+                'porPergunta' => $porPergunta,
+            ];
+        })->values();
+
+        return [
+            'titulo' => 's-Totem · '.$org->nome,
+            'atualizadoEm' => now()->toIso8601String(),
+            'janelaDias' => $dias,
+            'totalRespostas' => $totalGeral,
+            'pontos' => $porPonto,
         ];
     }
 }

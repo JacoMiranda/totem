@@ -61,6 +61,34 @@ class PulsoApiTest extends TestCase
         $this->assertStringContainsString('/pulso/'.$r->json('token'), $r->json('url'));
     }
 
+    public function test_token_do_ponto_traz_o_nome_da_empresa(): void
+    {
+        $org = $this->org(['slug' => 'PadariaDoZe'.Str::random(4)]);
+        Sanctum::actingAs($this->admin($org));
+
+        $r = $this->postJson('/api/v1/pulso-pontos', ['nome' => 'QR balcão']);
+
+        $this->assertStringStartsWith('padariadoze', $r->json('token'));
+    }
+
+    public function test_admin_edita_nome_unidade_e_perguntas(): void
+    {
+        $org = $this->org();
+        $ponto = $this->ponto($org, ['nome' => 'Nome antigo']);
+        Sanctum::actingAs($this->admin($org));
+
+        $r = $this->patchJson("/api/v1/pulso-pontos/{$ponto->id}", [
+            'nome' => 'Nome novo',
+            'unidade' => 'Unidade nova',
+            'perguntas' => ['Só uma pergunta'],
+        ]);
+
+        $r->assertOk()
+            ->assertJsonPath('nome', 'Nome novo')
+            ->assertJsonPath('unidade', 'Unidade nova')
+            ->assertJsonPath('perguntas', ['Só uma pergunta']);
+    }
+
     public function test_atendente_nao_gerencia_pontos(): void
     {
         $org = $this->org();
@@ -189,5 +217,55 @@ class PulsoApiTest extends TestCase
         Sanctum::actingAs($this->admin($a));
 
         $this->getJson("/api/v1/pulso-pontos/{$ponto->id}/resumo")->assertNotFound();
+    }
+
+    public function test_painel_publico_desligado_por_padrao_e_liga_com_token_da_empresa(): void
+    {
+        $org = $this->org(['slug' => 'RedeExemplo'.Str::random(4)]);
+        Sanctum::actingAs($this->admin($org));
+
+        $this->getJson('/api/v1/s-totem-painel')->assertOk()->assertJsonPath('ativo', false)->assertJsonPath('token', null);
+
+        $r = $this->patchJson('/api/v1/s-totem-painel', ['ativo' => true]);
+        $r->assertOk()->assertJsonPath('ativo', true);
+        $this->assertStringStartsWith('redeexemplo', $r->json('token'));
+        $this->assertStringContainsString($r->json('token'), $r->json('url'));
+    }
+
+    public function test_painel_publico_agrega_todos_os_pontos_ativos(): void
+    {
+        $org = $this->org();
+        $a = $this->ponto($org, ['nome' => 'Ponto A', 'perguntas' => ['Atendimento']]);
+        $b = $this->ponto($org, ['nome' => 'Ponto B', 'perguntas' => ['Atendimento']]);
+        $this->ponto($org, ['nome' => 'Ponto inativo', 'ativo' => false]);
+
+        foreach ([$a, $b] as $ponto) {
+            $hash = $this->abrirSessao($ponto);
+            $this->postJson("/api/v1/pulso/s/{$hash}/respostas", ['valor' => 'positivo']);
+        }
+
+        Sanctum::actingAs($this->admin($org));
+        $this->patchJson('/api/v1/s-totem-painel', ['ativo' => true]);
+        $token = $this->getJson('/api/v1/s-totem-painel')->json('token');
+
+        $r = $this->getJson("/api/v1/s-totem/{$token}");
+
+        $r->assertOk()->assertJsonPath('totalRespostas', 2);
+        $nomes = collect($r->json('pontos'))->pluck('nome');
+        $this->assertTrue($nomes->contains('Ponto A'));
+        $this->assertTrue($nomes->contains('Ponto B'));
+        $this->assertFalse($nomes->contains('Ponto inativo'));
+    }
+
+    public function test_painel_publico_desativado_da_404(): void
+    {
+        $org = $this->org();
+        $this->getJson('/api/v1/s-totem/qualquer-coisa')->assertNotFound();
+
+        Sanctum::actingAs($this->admin($org));
+        $token = $this->patchJson('/api/v1/s-totem-painel', ['ativo' => true])->json('token');
+        $this->patchJson('/api/v1/s-totem-painel', ['ativo' => false]);
+
+        $this->getJson("/api/v1/s-totem/{$token}")->assertNotFound();
     }
 }

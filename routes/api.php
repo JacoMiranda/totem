@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPrefController;
 use App\Http\Controllers\Api\Admin\PulsoPontoController;
 use App\Http\Controllers\Api\PulsoController;
+use App\Http\Controllers\Api\PulsoPainelController;
 use App\Http\Controllers\Api\PublicManifestationController;
 use App\Http\Controllers\Api\RegistroController;
 use App\Http\Controllers\Api\ReportController;
@@ -134,6 +135,11 @@ Route::prefix('v1')->group(function () {
         Route::patch('/pulso-pontos/{ponto}', [PulsoPontoController::class, 'update'])->whereUuid('ponto');
         Route::get('/pulso-pontos/{ponto}/resumo', [PulsoPontoController::class, 'resumo'])->whereUuid('ponto');
 
+        // Painel público do s-Totem (agrega todos os pontos da empresa).
+        Route::get('/s-totem-painel', [PulsoPainelController::class, 'config']);
+        Route::patch('/s-totem-painel', [PulsoPainelController::class, 'atualizar']);
+        Route::post('/s-totem-painel/token', [PulsoPainelController::class, 'regenerarToken']);
+
         // Back-office da plataforma (time comercial/suporte - usuário sem
         // organização). Gate gerenciar-plataforma em cada controller.
         Route::prefix('plataforma')->group(function () {
@@ -162,5 +168,8 @@ Route::prefix('v1')->group(function () {
         // identificado só pelo hash da sessão (ver PulsoService).
         Route::get('/pulso/s/{hash}', [PulsoController::class, 'sessao'])->where('hash', '[a-zA-Z0-9]{40}');
         Route::post('/pulso/s/{hash}/respostas', [PulsoController::class, 'responder'])->where('hash', '[a-zA-Z0-9]{40}');
+
+        // Painel público do s-Totem (a tela de LED/TV da recepção).
+        Route::get('/s-totem/{token}', [PulsoPainelController::class, 'show'])->where('token', '[a-z0-9][a-z0-9-]{3,63}');
     });
 });

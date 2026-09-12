@@ -9,6 +9,8 @@ use App\Models\Manifestation;
 use App\Models\ManifestationStatusHistory;
 use App\Models\Organizacao;
 use App\Models\Plano;
+use App\Models\PulsoPonto;
+use App\Models\PulsoResposta;
 use App\Models\User;
 use App\Services\MuralService;
 use Illuminate\Console\Command;
@@ -19,8 +21,9 @@ use Illuminate\Support\Str;
 /**
  * Empresa-demo pronta pra apresentação / vídeo / marketing: uma conta
  * fictícia ("Rede Aurora") com totens, ~170 manifestações realistas ao
- * longo de 5 meses, respostas oficiais, e o mural público já ligado num
- * link fixo. Ver docs/DEMO-APRESENTACAO.md.
+ * longo de 5 meses, respostas oficiais, o mural público já ligado num
+ * link fixo, e 3 pontos de s-Totem (QR sem tablet) com histórico de
+ * exemplo + painel público ligado. Ver docs/DEMO-APRESENTACAO.md.
  *
  * Dados 100% fictícios, prefixo de protocolo `AURORA-`. Idempotente:
  * `--fresh` apaga a demo antes de recriar.
@@ -99,6 +102,20 @@ class SemearDemo extends Command
         'RedeAurora-04-Shopping' => ['Loja Shopping', 'demo-aurora-shopping'],
     ];
 
+    private const PULSO_PAINEL_TOKEN = 'redeaurora-painel';
+
+    /**
+     * 3 QRs de exemplo (ver App\Http\Controllers\Api\PulsoController) - a
+     * Aurora é porte médio (já tem totem físico nas 4 unidades acima), mas
+     * o pedido explícito foi ter exemplos de s-Totem na conta-demo mesmo
+     * assim, pra mostrar o recurso em apresentação/vídeo.
+     */
+    private const PULSO_PONTOS = [
+        'redeaurora-recepcao-qr' => ['nome' => 'QR Recepção', 'unidade' => 'Recepção', 'perguntas' => ['Atendimento', 'Tempo de espera']],
+        'redeaurora-caixa-qr' => ['nome' => 'QR Caixa', 'unidade' => 'Loja Shopping', 'perguntas' => ['Atendimento', 'Produto/Serviço']],
+        'redeaurora-sac-qr' => ['nome' => 'QR SAC', 'unidade' => 'Matriz Centro', 'perguntas' => ['Atendimento', 'Resolução do problema']],
+    ];
+
     public function handle(MuralService $mural): int
     {
         if (app()->environment('production') && ! $this->option('force')) {
@@ -127,6 +144,8 @@ class SemearDemo extends Command
             'mural_ativo' => true,
             'mural_token' => self::MURAL_TOKEN,
             'mural_titulo' => 'Ouvidoria Rede Aurora',
+            'pulso_painel_ativo' => true,
+            'pulso_painel_token' => self::PULSO_PAINEL_TOKEN,
         ]);
         $org->save();
 
@@ -173,6 +192,37 @@ class SemearDemo extends Command
                     'ultima_sync_em' => now()->subMinutes(random_int(2, 90)),
                 ],
             );
+        }
+
+        $pontosPulso = [];
+        foreach (self::PULSO_PONTOS as $token => $dados) {
+            $pontosPulso[] = PulsoPonto::withoutGlobalScopes()->updateOrCreate(
+                ['token' => $token],
+                [
+                    'organizacao_id' => $org->id,
+                    'nome' => $dados['nome'],
+                    'unidade' => $dados['unidade'],
+                    'perguntas' => $dados['perguntas'],
+                    'ativo' => true,
+                ],
+            );
+        }
+
+        // Sempre refeito (como as manifestações abaixo) - histórico de
+        // exemplo, não dado real que precise ser preservado entre seeds.
+        PulsoResposta::withoutGlobalScopes()
+            ->whereIn('pulso_ponto_id', collect($pontosPulso)->pluck('id'))
+            ->delete();
+        foreach ($pontosPulso as $ponto) {
+            for ($i = 0, $totalRespostas = random_int(40, 90); $i < $totalRespostas; $i++) {
+                PulsoResposta::withoutGlobalScopes()->create([
+                    'pulso_ponto_id' => $ponto->id,
+                    'organizacao_id' => $org->id,
+                    'pergunta' => $ponto->perguntas[array_rand($ponto->perguntas)],
+                    'valor' => $this->sorteioPonderado([['positivo', 65], ['neutro', 25], ['negativo', 10]]),
+                    'criado_em' => now()->subDays(random_int(0, 29))->setTime(random_int(8, 20), random_int(0, 59)),
+                ]);
+            }
         }
 
         Manifestation::withoutGlobalScopes()->where('organizacao_id', $org->id)->delete();
@@ -247,6 +297,12 @@ class SemearDemo extends Command
         foreach (self::UNIDADES as $codigo => [$unidade, $chave]) {
             $this->line("     {$codigo}  ({$unidade})  →  {$chave}");
         }
+        $this->newLine();
+        $this->line('  s-Totem (QR sem tablet):');
+        foreach (self::PULSO_PONTOS as $token => $dados) {
+            $this->line("     {$dados['nome']}  ({$dados['unidade']})  →  ".url('/pulso/'.$token));
+        }
+        $this->line('  Painel s-Totem:  '.url('/s-totem/'.self::PULSO_PAINEL_TOKEN));
         $this->newLine();
         $this->line('  Números do mural agora:');
         foreach ($numeros['indicadores'] as $k => $v) {

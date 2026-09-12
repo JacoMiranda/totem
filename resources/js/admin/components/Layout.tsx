@@ -59,7 +59,7 @@ export function Layout({ children }: { children: ReactNode }) {
             )}
             {temPapelMinimo(user?.role, 'admin') && (
               <NavLink to="/pulso" className={linkClass}>
-                Pulso Rápido
+                s-Totem
               </NavLink>
             )}
             {temPapelMinimo(user?.role, 'admin') && (

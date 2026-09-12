@@ -48,7 +48,7 @@ class PulsoPontoController extends Controller
             'nome' => $dados['nome'],
             'unidade' => $dados['unidade'] ?? null,
             'perguntas' => $dados['perguntas'] ?? self::PERGUNTAS_PADRAO,
-            'token' => $this->tokenNovo(),
+            'token' => $this->tokenNovo($org),
             'ativo' => true,
         ]);
 
@@ -97,10 +97,18 @@ class PulsoPontoController extends Controller
         ];
     }
 
-    private function tokenNovo(): string
+    /**
+     * O link precisa deixar claro de qual empresa é o QR - prefixa com o
+     * slug da organização (ex.: "rede-aurora-8fj2kq"). Se o slug não sobrar
+     * nada aproveitável, cai pra "s-totem-<aleatório>".
+     */
+    private function tokenNovo(Organizacao $org): string
     {
+        $base = Str::of($org->slug)->lower()->replaceMatches('/[^a-z0-9]+/', '-')->trim('-')->limit(40, '');
+        $prefixo = $base->isNotEmpty() ? $base->toString() : 's-totem';
+
         do {
-            $token = Str::lower(Str::random(10));
+            $token = $prefixo.'-'.Str::lower(Str::random(6));
         } while (PulsoPonto::withoutGlobalScopes()->where('token', $token)->exists());
 
         return $token;

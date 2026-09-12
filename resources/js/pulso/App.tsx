@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './lib/api';
+import Painel from './Painel';
 
 type Valor = 'positivo' | 'neutro' | 'negativo';
 type Tela = 'carregando' | 'pergunta' | 'obrigado' | 'expirada' | 'invalida' | 'erro';
@@ -20,12 +21,16 @@ const OPCOES: { valor: Valor; emoji: string; rotulo: string; cor: string }[] = [
 ];
 
 /**
- * Pulso Rápido: alternativa ao totem físico pra quem não tem tablet/led -
- * um QR impresso abre isto no celular do cliente. `/pulso/{token}` (fixo,
- * impresso) redireciona pro servidor pra `/pulso/s/{hash}` (uma sessão por
- * abertura, ver PulsoWebController) - o hash na URL é o que este componente
- * lê e usa em toda chamada. Sem login, sem device key: é público por
- * design, só o hash identifica a sessão.
+ * s-Totem (era "Pulso Rápido"): alternativa ao totem físico pra quem não
+ * tem tablet/led - um QR impresso abre isto no celular do cliente.
+ * `/pulso/{token}` (fixo, impresso) redireciona pro servidor pra
+ * `/pulso/s/{hash}` (uma sessão por abertura, ver PulsoWebController) - o
+ * hash na URL é o que este componente lê e usa em toda chamada. Sem
+ * login, sem device key: é público por design, só o hash identifica a
+ * sessão.
+ *
+ * Mesmo bundle serve o painel público (`/s-totem/{token}`, ver Painel.tsx)
+ * - é o mesmo produto, só uma tela pensada pra TV/tablet em vez de celular.
  */
 function hashDaUrl(): string {
   const partes = window.location.pathname.split('/').filter(Boolean);
@@ -34,6 +39,16 @@ function hashDaUrl(): string {
 }
 
 export default function App() {
+  // Decidido uma vez, no carregamento da página - não é uma rota client-
+  // side que muda durante a vida deste componente.
+  if (window.location.pathname.startsWith('/s-totem/')) {
+    return <Painel />;
+  }
+
+  return <FluxoResposta />;
+}
+
+function FluxoResposta() {
   const hash = useMemo(hashDaUrl, []);
   const [tela, setTela] = useState<Tela>('carregando');
   const [perguntas, setPerguntas] = useState<string[]>([]);

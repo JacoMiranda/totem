@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'mural_ativo', 'mural_token', 'mural_titulo', 'mural_tema',
     'mural_totem_local', 'mural_linha_cor',
     'mural_token_anterior', 'mural_token_anterior_ate', 'mural_pin',
+    'pulso_painel_ativo', 'pulso_painel_token',
 ])]
 class Organizacao extends Model
 {
@@ -33,6 +34,7 @@ class Organizacao extends Model
             'trial_expira_em' => 'datetime',
             'mural_ativo' => 'boolean',
             'mural_token_anterior_ate' => 'datetime',
+            'pulso_painel_ativo' => 'boolean',
         ];
     }
 
