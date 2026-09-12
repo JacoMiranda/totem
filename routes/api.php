@@ -133,6 +133,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/pulso-pontos', [PulsoPontoController::class, 'index']);
         Route::post('/pulso-pontos', [PulsoPontoController::class, 'store']);
         Route::patch('/pulso-pontos/{ponto}', [PulsoPontoController::class, 'update'])->whereUuid('ponto');
+        Route::delete('/pulso-pontos/{ponto}', [PulsoPontoController::class, 'destroy'])->whereUuid('ponto');
         Route::get('/pulso-pontos/{ponto}/resumo', [PulsoPontoController::class, 'resumo'])->whereUuid('ponto');
 
         // Painel público do s-Totem (agrega todos os pontos da empresa).

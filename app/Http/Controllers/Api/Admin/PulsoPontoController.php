@@ -84,6 +84,18 @@ class PulsoPontoController extends Controller
         return response()->json($pulso->resumo($ponto));
     }
 
+    /** Apaga o ponto e, em cascata (FK), as sessões e respostas dele - não dá pra desfazer. */
+    public function destroy(Request $request, PulsoPonto $ponto): JsonResponse
+    {
+        Gate::authorize('gerenciar-pulso');
+        $org = $this->organizacaoDoUsuario($request);
+        abort_unless($ponto->organizacao_id === $org->id, 404);
+
+        $ponto->delete();
+
+        return response()->json(null, 204);
+    }
+
     private function apresentar(PulsoPonto $p): array
     {
         return [

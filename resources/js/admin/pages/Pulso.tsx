@@ -72,6 +72,12 @@ export function Pulso() {
     carregar();
   };
 
+  const excluir = async (p: Ponto) => {
+    if (!window.confirm(`Excluir "${p.nome}"? O QR impresso para de funcionar e o histórico de respostas dele some. Não dá pra desfazer.`)) return;
+    await api.delete(`/pulso-pontos/${p.id}`);
+    carregar();
+  };
+
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
       <div>
@@ -135,6 +141,7 @@ export function Pulso() {
             aberto={expandido === p.id}
             onToggleAberto={() => setExpandido((v) => (v === p.id ? null : p.id))}
             onAlternarAtivo={() => alternarAtivo(p)}
+            onExcluir={() => excluir(p)}
             onSalvo={carregar}
           />
         ))}
@@ -224,12 +231,14 @@ function CardPonto({
   aberto,
   onToggleAberto,
   onAlternarAtivo,
+  onExcluir,
   onSalvo,
 }: {
   ponto: Ponto;
   aberto: boolean;
   onToggleAberto: () => void;
   onAlternarAtivo: () => void;
+  onExcluir: () => void;
   onSalvo: () => void;
 }) {
   const [qr, setQr] = useState<string | null>(null);
@@ -354,6 +363,9 @@ function CardPonto({
             </a>
             <button type="button" onClick={onAlternarAtivo} className="text-xs text-rose-600 underline">
               {ponto.ativo ? 'Desativar ponto' : 'Reativar ponto'}
+            </button>
+            <button type="button" onClick={onExcluir} className="text-xs text-rose-600 underline">
+              Excluir ponto
             </button>
           </div>
 

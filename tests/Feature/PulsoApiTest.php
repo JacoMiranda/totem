@@ -219,6 +219,33 @@ class PulsoApiTest extends TestCase
         $this->getJson("/api/v1/pulso-pontos/{$ponto->id}/resumo")->assertNotFound();
     }
 
+    public function test_admin_exclui_ponto_e_respostas_em_cascata(): void
+    {
+        $org = $this->org();
+        $ponto = $this->ponto($org);
+        $hash = $this->abrirSessao($ponto);
+        $this->postJson("/api/v1/pulso/s/{$hash}/respostas", ['valor' => 'positivo']);
+        $this->assertSame(1, PulsoResposta::withoutGlobalScopes()->where('pulso_ponto_id', $ponto->id)->count());
+
+        Sanctum::actingAs($this->admin($org));
+        $this->deleteJson("/api/v1/pulso-pontos/{$ponto->id}")->assertNoContent();
+
+        $this->assertNull(PulsoPonto::withoutGlobalScopes()->find($ponto->id));
+        $this->assertSame(0, PulsoResposta::withoutGlobalScopes()->where('pulso_ponto_id', $ponto->id)->count());
+    }
+
+    public function test_admin_nao_exclui_ponto_de_outra_organizacao(): void
+    {
+        $a = $this->org();
+        $b = $this->org();
+        $ponto = $this->ponto($b);
+
+        Sanctum::actingAs($this->admin($a));
+
+        $this->deleteJson("/api/v1/pulso-pontos/{$ponto->id}")->assertNotFound();
+        $this->assertNotNull(PulsoPonto::withoutGlobalScopes()->find($ponto->id));
+    }
+
     public function test_painel_publico_desligado_por_padrao_e_liga_com_token_da_empresa(): void
     {
         $org = $this->org(['slug' => 'RedeExemplo'.Str::random(4)]);
