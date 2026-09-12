@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PulsoWebController;
 use Illuminate\Support\Facades\Route;
 
 // Duas telas React, mesmo projeto Laravel - kiosk é PWA offline (rota
@@ -26,3 +27,8 @@ Route::get('/mural/{any?}', function () {
 Route::get('/admin/{any?}', function () {
     return view('admin');
 })->where('any', '.*')->name('admin.spa');
+
+// Pulso Rápido: QR sem totem/tablet (ver PulsoService). O token do ponto é
+// fixo (impresso); cada visita gera uma sessão nova com hash próprio.
+Route::get('/pulso/{token}', [PulsoWebController::class, 'iniciar'])->where('token', '[a-z0-9]{4,64}');
+Route::get('/pulso/s/{hash}', fn () => view('pulso'))->where('hash', '[a-zA-Z0-9]{40}')->name('pulso');

@@ -50,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('gerenciar-notificacoes', fn (User $u) => $u->role === UserRole::Admin);
         Gate::define('ver-logs', fn (User $u) => $u->role === UserRole::Admin);
         Gate::define('gerenciar-mural', fn (User $u) => $u->role === UserRole::Admin);
+        Gate::define('gerenciar-pulso', fn (User $u) => $u->role === UserRole::Admin);
         // Back-office da plataforma (nós, o time comercial/suporte): só
         // usuários SEM organização - a "equipe da plataforma", ver
         // User::daPlataforma() e App\Models\Scopes\PorOrganizacao.

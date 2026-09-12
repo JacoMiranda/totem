@@ -11,6 +11,7 @@ import { Mural } from './pages/Mural';
 import { Perfil } from './pages/Perfil';
 import { Plataforma } from './pages/Plataforma';
 import { PlataformaOrg } from './pages/PlataformaOrg';
+import { Pulso } from './pages/Pulso';
 import { ManifestationDetail } from './pages/ManifestationDetail';
 import { ManifestationsList } from './pages/ManifestationsList';
 import { Relatorios } from './pages/Relatorios';
@@ -83,6 +84,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Mural />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pulso"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Pulso />
               </Layout>
             </ProtectedRoute>
           }

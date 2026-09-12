@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\ManifestationController;
 use App\Http\Controllers\Api\MuralController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPrefController;
+use App\Http\Controllers\Api\Admin\PulsoPontoController;
+use App\Http\Controllers\Api\PulsoController;
 use App\Http\Controllers\Api\PublicManifestationController;
 use App\Http\Controllers\Api\RegistroController;
 use App\Http\Controllers\Api\ReportController;
@@ -126,6 +128,12 @@ Route::prefix('v1')->group(function () {
         Route::patch('/mural', [MuralController::class, 'atualizar']);
         Route::post('/mural/token', [MuralController::class, 'regenerarToken']);
 
+        // Pulso Rápido: QR impresso sem totem/tablet (ver PulsoService).
+        Route::get('/pulso-pontos', [PulsoPontoController::class, 'index']);
+        Route::post('/pulso-pontos', [PulsoPontoController::class, 'store']);
+        Route::patch('/pulso-pontos/{ponto}', [PulsoPontoController::class, 'update'])->whereUuid('ponto');
+        Route::get('/pulso-pontos/{ponto}/resumo', [PulsoPontoController::class, 'resumo'])->whereUuid('ponto');
+
         // Back-office da plataforma (time comercial/suporte - usuário sem
         // organização). Gate gerenciar-plataforma em cada controller.
         Route::prefix('plataforma')->group(function () {
@@ -149,5 +157,10 @@ Route::prefix('v1')->group(function () {
 
         // Mural público de transparência (a tela da recepção puxa isto sozinha).
         Route::get('/mural/{token}', [MuralController::class, 'show'])->where('token', '[a-z0-9][a-z0-9-]{4,63}');
+
+        // Pulso Rápido: celular do cliente do estabelecimento, anônimo,
+        // identificado só pelo hash da sessão (ver PulsoService).
+        Route::get('/pulso/s/{hash}', [PulsoController::class, 'sessao'])->where('hash', '[a-zA-Z0-9]{40}');
+        Route::post('/pulso/s/{hash}/respostas', [PulsoController::class, 'responder'])->where('hash', '[a-zA-Z0-9]{40}');
     });
 });
